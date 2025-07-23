@@ -1,0 +1,4161 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <!-- Content Security Policy to prevent XSS attacks -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https: http: blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <title>Home Server Dashboard</title>
+    <style>
+        :root {
+            --bg-primary: #f0f4f8;
+            --bg-secondary: #e2e8f0;
+            --bg-tertiary: #f8fafc;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #475569;
+            --card-bg: rgba(255,255,255,0.9);
+            --card-border: rgba(71, 85, 105, 0.2);
+            --header-bg: rgba(255,255,255,0.9);
+            --header-border: rgba(71, 85, 105, 0.2);
+            --btn-secondary-bg: rgba(148, 163, 184, 0.2);
+            --btn-secondary-border: rgba(71, 85, 105, 0.3);
+            --input-bg: rgba(255, 255, 255, 0.9);
+            --input-border: rgba(71, 85, 105, 0.3);
+            --modal-bg: rgba(255, 255, 255, 0.95);
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --shadow-color-hover: rgba(0, 0, 0, 0.15);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --card-bg: rgba(30, 41, 59, 0.9);
+            --card-border: rgba(148, 163, 184, 0.2);
+            --header-bg: rgba(30, 41, 59, 0.9);
+            --header-border: rgba(148, 163, 184, 0.2);
+            --btn-secondary-bg: rgba(148, 163, 184, 0.1);
+            --btn-secondary-border: rgba(148, 163, 184, 0.3);
+            --input-bg: rgba(30, 41, 59, 0.9);
+            --input-border: rgba(148, 163, 184, 0.3);
+            --modal-bg: rgba(15, 23, 42, 0.95);
+            --shadow-color: rgba(0, 0, 0, 0.3);
+            --shadow-color-hover: rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.25rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--header-bg) 0%, var(--card-bg) 100%);
+            border-radius: 1rem;
+            border: 1px solid var(--header-border);
+            backdrop-filter: blur(10px);
+        }
+
+        .header-title-section {
+            flex: 1;
+            text-align: left;
+            position: relative;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .search-container {
+            position: relative;
+        }
+
+        .search-clear-btn {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0.25rem;
+            border-radius: 50%;
+            width: 1.5rem;
+            height: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.2s;
+        }
+
+        .search-clear-btn:hover {
+            background: rgba(148, 163, 184, 0.2);
+            color: var(--text-primary);
+        }
+
+        .search-clear-btn.visible {
+            opacity: 1;
+        }
+
+        [dir="rtl"] .search-clear-btn {
+            right: auto;
+            left: 0.75rem;
+        }
+
+        .search-input {
+            background: var(--card-bg);
+            border: 1px solid var(--btn-secondary-border);
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            width: 200px;
+            height: 3rem;
+            transition: all 0.3s;
+            box-sizing: border-box;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .header-icon-btn {
+            background: var(--btn-secondary-bg);
+            border: 1px solid var(--btn-secondary-border);
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: var(--text-muted);
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 3rem;
+            height: 3rem;
+        }
+
+        .header-icon-btn:hover {
+            background: rgba(148, 163, 184, 0.2);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px var(--shadow-color);
+        }
+
+        .header h1 .edit-btn,
+        .header p .edit-btn {
+            opacity: 0;
+            transition: opacity 0.2s;
+            margin-left: 0.5rem;
+            pointer-events: none;
+            display: inline-flex;
+            vertical-align: middle;
+        }
+
+        .header h1 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header h1:hover .edit-btn,
+        .header p:hover .edit-btn {
+            opacity: 0;
+        }
+
+        /* Show header edit buttons only in edit mode */
+        .edit-mode .header h1 .edit-btn,
+        .edit-mode .header p .edit-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .edit-mode .header h1:hover .edit-btn,
+        .edit-mode .header p:hover .edit-btn {
+            opacity: 1;
+        }
+
+        /* Make header text non-clickable in non-edit mode */
+        .header h1,
+        .header p {
+            cursor: default;
+        }
+
+        /* Make header text clickable only in edit mode */
+        .edit-mode .header h1,
+        .edit-mode .header p {
+            cursor: pointer;
+        }
+
+        .lang-toggle-btn {
+            background: var(--btn-secondary-bg);
+            border: 1px solid var(--btn-secondary-border);
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: var(--text-muted);
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 3rem;
+            height: 3rem;
+        }
+
+        .lang-toggle-btn:hover {
+            background: rgba(148, 163, 184, 0.2);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px var(--shadow-color);
+        }
+
+        .lang-icon {
+            transition: transform 0.3s ease;
+        }
+
+        .dark-mode-toggle {
+            background: var(--btn-secondary-bg);
+            border: 1px solid var(--btn-secondary-border);
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: var(--text-muted);
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 3rem;
+            height: 3rem;
+        }
+
+        .dark-mode-toggle:hover {
+            background: rgba(148, 163, 184, 0.2);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px var(--shadow-color);
+        }
+
+        .dark-mode-icon {
+            transition: transform 0.3s ease;
+        }
+
+        [data-theme="dark"] .dark-mode-icon {
+            transform: rotate(180deg);
+        }
+
+        /* Mobile Menu Styles */
+        .hamburger-menu {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            padding: 0.5rem;
+            background: var(--btn-secondary-bg);
+            border: 1px solid var(--btn-secondary-border);
+            border-radius: 0.5rem;
+            transition: all 0.3s;
+        }
+
+        .hamburger-menu:hover {
+            background: rgba(148, 163, 184, 0.2);
+        }
+
+        .hamburger-line {
+            width: 20px;
+            height: 2px;
+            background: var(--text-muted);
+            margin: 2px 0;
+            transition: all 0.3s;
+        }
+
+        .hamburger-menu.active .hamburger-line:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+
+        .hamburger-menu.active .hamburger-line:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger-menu.active .hamburger-line:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -6px);
+        }
+
+        .mobile-menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--shadow-color-hover);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .mobile-menu-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .mobile-menu {
+            position: fixed;
+            top: 0;
+            right: -300px;
+            width: 300px;
+            height: 100vh;
+            background: var(--modal-bg);
+            backdrop-filter: blur(15px);
+            border-left: 1px solid var(--card-border);
+            z-index: 1000;
+            transition: all 0.3s ease;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        [dir="rtl"] .mobile-menu {
+            right: auto;
+            left: -300px;
+            border-left: none;
+            border-right: 1px solid var(--card-border);
+        }
+
+        .mobile-menu.active {
+            right: 0;
+        }
+
+        [dir="rtl"] .mobile-menu.active {
+            right: auto;
+            left: 0;
+        }
+
+        .mobile-menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .mobile-menu-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .mobile-menu-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s;
+        }
+
+        .mobile-menu-close:hover {
+            background: rgba(148, 163, 184, 0.2);
+            color: var(--text-primary);
+        }
+
+        .mobile-menu-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .mobile-menu-section-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .mobile-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--btn-secondary-bg);
+            border: 1px solid var(--btn-secondary-border);
+            border-radius: 0.75rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .mobile-menu-item:hover {
+            background: rgba(148, 163, 184, 0.2);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px var(--shadow-color);
+        }
+
+        .mobile-menu-item-icon {
+            font-size: 1.25rem;
+            min-width: 1.5rem;
+            text-align: center;
+        }
+
+        .mobile-menu-item-text {
+            flex: 1;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .mobile-search-container {
+            margin-bottom: 1rem;
+        }
+
+        .mobile-search-wrapper {
+            position: relative;
+        }
+
+        .mobile-search-input {
+            width: 100%;
+            background: var(--card-bg);
+            border: 1px solid var(--btn-secondary-border);
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            padding-right: 2.5rem;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            box-sizing: border-box;
+        }
+
+        .mobile-search-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .mobile-search-clear-btn {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0.25rem;
+            border-radius: 50%;
+            width: 1.5rem;
+            height: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.2s;
+        }
+
+        .mobile-search-clear-btn:hover {
+            background: rgba(148, 163, 184, 0.2);
+            color: var(--text-primary);
+        }
+
+        .mobile-search-clear-btn.visible {
+            opacity: 1;
+        }
+
+        [dir="rtl"] .mobile-search-clear-btn {
+            right: auto;
+            left: 0.75rem;
+        }
+
+        [dir="rtl"] .mobile-search-input {
+            padding-left: 2.5rem;
+            padding-right: 1rem;
+        }
+
+        /* Mobile Responsive Breakpoints */
+        @media (max-width: 768px) {
+            .hamburger-menu {
+                display: flex;
+            }
+
+            .header-controls {
+                display: none;
+            }
+
+            .search-container {
+                display: none;
+            }
+
+            .header {
+                padding: 0.75rem;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .header p {
+                font-size: 0.875rem;
+            }
+
+            .categories-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .category-card {
+                padding: 1rem;
+            }
+
+            .server-item {
+                padding: 0.75rem;
+            }
+
+            .modal {
+                width: 95%;
+                padding: 1.5rem;
+                margin: 1rem;
+            }
+
+            /* Mobile: Show server controls on touch */
+            .server-controls {
+                opacity: 1;
+            }
+
+            /* Mobile: Add touch feedback */
+            .server-item:active {
+                transform: scale(0.98);
+            }
+
+            /* Mobile edit mode - show controls for the active server */
+            .server-item.mobile-edit-mode .server-controls {
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 0.5rem;
+            }
+
+            .header h1 {
+                font-size: 1.25rem;
+            }
+
+            .header p {
+                font-size: 0.8rem;
+            }
+
+            .modal {
+                padding: 1rem;
+            }
+        }
+
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .header h1:hover {
+            transform: scale(1.02);
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .header p:hover {
+            color: var(--text-muted);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8, #7c3aed);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--btn-secondary-bg), rgba(203, 213, 225, 0.3));
+            color: var(--text-muted);
+            border: 1px solid var(--btn-secondary-border);
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, rgba(148, 163, 184, 0.3), rgba(203, 213, 225, 0.4));
+            transform: translateY(-1px);
+        }
+
+        .btn-small {
+            padding: 0.25rem;
+            font-size: 0.625rem;
+            min-width: 1.25rem;
+            height: 1.25rem;
+            justify-content: center;
+            display: flex;
+            align-items: center;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: #64748b;
+            padding: 0.5rem;
+        }
+
+        .btn-ghost:hover {
+            background: rgba(71, 85, 105, 0.1);
+        }
+
+        .btn-danger {
+            color: #ef4444;
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .btn-danger[style*="background: #ef4444"] {
+            background: #ef4444 !important;
+            color: white !important;
+            border: 1px solid #ef4444 !important;
+        }
+
+        .btn-danger[style*="background: #ef4444"]:hover {
+            background: #dc2626 !important;
+            border-color: #dc2626 !important;
+        }
+
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .category-card {
+            background: linear-gradient(135deg, var(--card-bg) 0%, var(--card-bg) 100%);
+            border: 1px solid var(--card-border);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            backdrop-filter: blur(15px);
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px var(--shadow-color);
+            position: relative;
+        }
+
+        .category-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px var(--shadow-color-hover);
+        }
+
+        /* Drag and Drop Styles */
+        .category-card.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+            z-index: 1000;
+        }
+
+        .category-card.drag-over {
+            border: 1px dashed var(--accent-color);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .server-item.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+            z-index: 1000;
+        }
+
+        .server-item.drag-over {
+            border: 1px dashed var(--accent-color);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .server-list.drag-over {
+            border: 1px dashed var(--accent-color);
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin: 0.25rem 0;
+        }
+
+        .drag-handle {
+            cursor: grab;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+            transition: all 0.2s;
+            opacity: 0.6;
+        }
+
+        .drag-handle:hover {
+            opacity: 1;
+            background: rgba(148, 163, 184, 0.2);
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .drag-handle {
+            pointer-events: auto;
+        }
+
+        .category-card .drag-handle,
+        .server-item .drag-handle {
+            z-index: 10;
+        }
+
+
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+
+        .category-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .category-icon {
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+        }
+
+        .category-icon:hover {
+            transform: scale(1.05);
+        }
+
+        .category-icon.media { background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(248, 113, 113, 0.3)); color: #dc2626; }
+        .category-icon.network { background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(74, 222, 128, 0.3)); color: #16a34a; }
+        .category-icon.storage { background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), rgba(251, 146, 60, 0.3)); color: #ea580c; }
+        .category-icon.services { background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(167, 139, 250, 0.3)); color: #7c3aed; }
+        .category-icon.development { background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(96, 165, 250, 0.3)); color: #2563eb; }
+        .category-icon.monitoring { background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(244, 114, 182, 0.3)); color: #db2777; }
+        .category-icon.security { background: linear-gradient(135deg, rgba(245, 101, 101, 0.2), rgba(252, 165, 165, 0.3)); color: #ef4444; }
+        .category-icon.communication { background: linear-gradient(135deg, rgba(52, 211, 153, 0.2), rgba(94, 234, 212, 0.3)); color: #059669; }
+        .category-icon.productivity { background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(196, 181, 253, 0.3)); color: #9333ea; }
+        .category-icon.gaming { background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(254, 240, 138, 0.3)); color: #d97706; }
+        .category-icon.database { background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(129, 140, 248, 0.3)); color: #4f46e5; }
+        .category-icon.automation { background: linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(56, 189, 248, 0.3)); color: #0284c7; }
+
+        .category-name {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .category-controls {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .category-controls .btn {
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .category-card:hover .category-controls .btn {
+            opacity: 1;
+        }
+
+        .server-list {
+            space-y: 0.5rem;
+        }
+
+        .server-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            background: linear-gradient(135deg, var(--btn-secondary-bg), rgba(203, 213, 225, 0.15));
+            border: 1px solid var(--btn-secondary-border);
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s;
+            group: true;
+            cursor: pointer;
+            box-shadow: 0 2px 8px var(--shadow-color);
+            position: relative;
+            height: 8px;
+        }
+
+        .server-item:hover {
+            background: linear-gradient(135deg, rgba(148, 163, 184, 0.2), rgba(203, 213, 225, 0.25));
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px var(--shadow-color-hover);
+        }
+
+        .status-dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            flex-shrink: 0;
+            box-shadow: 0 0 8px var(--shadow-color);
+            animation: pulse 2s infinite;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .status-dot:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 12px var(--shadow-color-hover);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .status-online { background: linear-gradient(135deg, #22c55e, #16a34a); }
+        .status-warning { background: linear-gradient(135deg, #eab308, #ca8a04); }
+        .status-offline { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .status-checking { 
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            animation: pulse 1s infinite;
+        }
+
+        .server-info {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .server-name {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            transition: color 0.2s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .server-name:hover {
+            color: #3b82f6;
+        }
+
+        .server-url {
+            display: none;
+        }
+
+        /* URL Popup Styles */
+        .url-popup {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--modal-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            box-shadow: 0 8px 25px var(--shadow-color-hover);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            min-width: 200px;
+            max-width: 300px;
+            backdrop-filter: blur(10px);
+        }
+
+        .server-item:hover .url-popup {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(-5px);
+        }
+
+        /* Hide URL popup in edit mode */
+        .edit-mode .server-item:hover .url-popup {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .url-popup-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .url-display {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            word-break: break-all;
+            line-height: 1.3;
+            background: var(--btn-secondary-bg);
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            border: 1px solid var(--btn-secondary-border);
+        }
+
+        .url-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+
+        .url-copy-btn {
+            background: var(--btn-secondary-bg);
+            border: 1px solid var(--btn-secondary-border);
+            border-radius: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .url-copy-btn:hover {
+            background: rgba(148, 163, 184, 0.2);
+            color: var(--text-primary);
+        }
+
+        .url-open-btn {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border: 1px solid #3b82f6;
+            border-radius: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .url-open-btn:hover {
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            transform: translateY(-1px);
+        }
+
+        /* Popup arrow */
+        .url-popup::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: var(--modal-bg);
+        }
+
+        .server-controls {
+            display: flex;
+            gap: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+
+        .category-controls {
+            display: flex;
+            gap: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+
+        .category-controls .btn {
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        /* Edit Mode Styles */
+        .edit-mode .server-controls {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .edit-mode .category-controls {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .edit-mode .category-controls .btn {
+            opacity: 1;
+        }
+
+        .edit-mode .drag-handle {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .edit-mode .add-category-btn {
+            display: block;
+        }
+
+        .edit-mode .add-server-btn {
+            display: block;
+        }
+
+        /* Hide edit elements by default */
+        .drag-handle {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .add-category-btn {
+            display: none !important;
+        }
+
+        .add-server-btn {
+            display: none !important;
+        }
+
+        /* Show in edit mode */
+        .edit-mode .add-category-btn {
+            display: flex !important;
+        }
+
+        .edit-mode .add-server-btn {
+            display: block !important;
+        }
+
+        .input {
+            padding: 0.5rem 0.75rem;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 0.375rem;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            width: 100%;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .edit-form {
+            display: flex;
+            gap: 0.5rem;
+            flex: 1;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--shadow-color-hover);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: var(--modal-bg);
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 25px 50px var(--shadow-color-hover);
+        }
+
+        .modal h3 {
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+            color: var(--text-primary);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .export-controls {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--card-bg), var(--card-bg));
+            border-radius: 1rem;
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(15px);
+            box-shadow: 0 4px 15px var(--shadow-color);
+        }
+
+        .filter-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            background: var(--input-bg);
+            border: 2px solid rgba(99, 102, 241, 0.2);
+            border-radius: 0.75rem;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .filter-input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+        }
+
+
+
+        /* RTL Support */
+        [dir="rtl"] {
+            direction: rtl;
+            text-align: right;
+        }
+
+        [dir="rtl"] body {
+            direction: rtl;
+            text-align: right;
+        }
+
+        [dir="rtl"] .container {
+            direction: rtl;
+        }
+
+        [dir="rtl"] .header {
+            flex-direction: row-reverse;
+        }
+
+        [dir="rtl"] .header-title-section {
+            text-align: right;
+            order: 2;
+        }
+
+        [dir="rtl"] .header-controls {
+            order: 1;
+        }
+
+        [dir="rtl"] .header h1 .edit-btn,
+        [dir="rtl"] .header p .edit-btn {
+            margin-left: 0;
+            margin-right: 0.5rem;
+        }
+
+        [dir="rtl"] .category-header {
+            flex-direction: row-reverse;
+        }
+
+        [dir="rtl"] .category-title {
+            flex-direction: row-reverse;
+        }
+
+        [dir="rtl"] .server-item {
+            flex-direction: row-reverse;
+        }
+
+        [dir="rtl"] .server-controls {
+            flex-direction: row-reverse;
+        }
+
+        [dir="rtl"] .controls {
+            flex-direction: row-reverse;
+        }
+
+        [dir="rtl"] .filter-bar {
+            flex-direction: row-reverse;
+        }
+
+        [dir="rtl"] .export-controls {
+            flex-direction: row-reverse;
+        }
+
+        [dir="rtl"] .modal > div:last-child {
+            flex-direction: row-reverse;
+        }
+
+        [dir="rtl"] .form-group label {
+            text-align: right;
+        }
+
+        [dir="rtl"] .input {
+            text-align: right;
+        }
+
+        [dir="rtl"] .filter-input {
+            text-align: right;
+        }
+
+        [dir="rtl"] .header-edit-input {
+            text-align: center;
+        }
+
+        [dir="rtl"] .server-name {
+            text-align: right;
+        }
+
+        [dir="rtl"] .server-url {
+            text-align: right;
+            direction: ltr; /* Keep URL left-to-right even in RTL */
+        }
+
+        [dir="rtl"] .category-name {
+            text-align: right;
+        }
+
+        [dir="rtl"] .server-info {
+            text-align: right;
+        }
+
+        [dir="rtl"] .server-list {
+            direction: rtl;
+        }
+        [dir="rtl"] .categories-grid {
+            direction: rtl;
+        }
+       
+        /* RTL - Complete mirror layout */
+        [dir="rtl"] .category-icon {
+            order: 2;
+        }
+
+        [dir="rtl"] .category-name {
+            order: 1;
+        }
+
+        [dir="rtl"] .status-dot {
+            order: 3;
+        }
+
+        [dir="rtl"] .server-info {
+            order: 2;
+        }
+
+        [dir="rtl"] .server-controls {
+            order: 1;
+        }
+
+        [dir="rtl"] .category-controls {
+            order: 1;
+        }
+
+        [dir="rtl"] .category-title {
+            order: 2;
+        }
+
+        .color-picker {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 0.5rem 0;
+            max-width: 100%;
+        }
+
+        .color-option {
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px var(--shadow-color);
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .color-option:hover {
+            transform: scale(1.2);
+        }
+
+        .color-option.selected {
+            transform: scale(1.3);
+            box-shadow: 0 4px 15px var(--shadow-color-hover);
+        }
+
+
+
+        .server-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--btn-secondary-bg), rgba(203, 213, 225, 0.15));
+            border: 2px solid var(--btn-secondary-border);
+            border-radius: 0.75rem;
+            margin-bottom: 0.75rem;
+            transition: all 0.3s;
+            group: true;
+            cursor: pointer;
+            box-shadow: 0 4px 15px var(--shadow-color);
+            position: relative;
+        }
+
+        .header-edit-input {
+            background: transparent;
+            border: none;
+            font-size: inherit;
+            font-weight: inherit;
+            color: inherit;
+            text-align: left;
+            width: 100%;
+            outline: none;
+        }
+
+        [dir="rtl"] .header-edit-input {
+            text-align: right;
+        }
+
+        /* Add to CSS */
+        .modal-actions {
+          display: flex;
+          gap: 1rem;
+          justify-content: flex-end;
+          width: 100%;
+          margin-left: auto;
+        }
+        [dir="rtl"] .modal-actions {
+          justify-content: flex-start;
+          flex-direction: row-reverse;
+          margin-left: 0;
+          margin-right: auto;
+        }
+        
+        .server-modal-actions {
+          justify-content: space-between;
+        }
+        
+        [dir="rtl"] .server-modal-actions {
+          justify-content: space-between;
+        }
+        
+        /* RTL/LTR Modal Support */
+        .modal[dir="rtl"] {
+          direction: rtl;
+          text-align: right;
+        }
+        
+        .modal[dir="ltr"] {
+          direction: ltr;
+          text-align: left;
+        }
+        
+        .modal[dir="rtl"] .form-group label {
+          text-align: right;
+        }
+        
+        .modal[dir="ltr"] .form-group label {
+          text-align: left;
+        }
+        
+        .modal[dir="rtl"] .color-picker {
+          justify-content: flex-end;
+        }
+        
+        .modal[dir="ltr"] .color-picker {
+          justify-content: flex-start;
+        }
+
+        /* Changes notification styles */
+        .changes-notification {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #92400e;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-align: center;
+            box-shadow: 0 4px 15px var(--shadow-color);
+            border: 1px solid #f59e0b;
+            transform: translateY(-100%);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .changes-notification.show {
+            transform: translateY(0);
+            opacity: 1;
+            visibility: visible;
+        }
+
+        [data-theme="dark"] .changes-notification {
+            background: linear-gradient(135deg, #451a03, #78350f);
+            color: #fef3c7;
+            border-color: #f59e0b;
+        }
+
+        /* Mobile responsive for notification */
+        @media (max-width: 768px) {
+            .changes-notification {
+                font-size: 0.8rem;
+                padding: 0.5rem 0.75rem;
+            }
+        }
+
+        /* Hide header edit buttons by default */
+        .edit-btn {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        /* Show header edit buttons in edit mode */
+        .edit-mode .edit-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Hide edit elements by default */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-title-section">
+                <h1 onclick="showEditHeaderModal()" title="Click to edit">
+                    🏠 Home Server Dashboard
+                    <button class="btn btn-ghost btn-small edit-btn" onclick="event.stopPropagation(); showEditHeaderModal()" title="Edit header">
+                        ✏️
+                    </button>
+                </h1>
+                <p onclick="showEditHeaderModal()" title="Click to edit">
+                    Manage your local servers and services
+                    <button class="btn btn-ghost btn-small edit-btn" onclick="event.stopPropagation(); showEditHeaderModal()" title="Edit header">
+                        ✏️
+                    </button>
+                </p>
+                <div id="changesNotification" class="changes-notification"></div>
+            </div>
+            <div class="header-controls">
+                <div class="search-container">
+                    <input type="text" id="filterInput" class="search-input" placeholder="Search servers...">
+                    <button class="search-clear-btn" id="searchClearBtn" onclick="clearSearch()" title="Clear search">
+                        ✕
+                    </button>
+                </div>
+                <button class="header-icon-btn" onclick="checkAllServerStatuses()" title="Check server statuses">
+                    🔄
+                </button>
+                <button class="header-icon-btn" onclick="exportConfig()" title="Export Config">
+                    💾
+                </button>
+                <button class="header-icon-btn" onclick="document.getElementById('importFile').click()" title="Import Config">
+                    📁
+                </button>
+                <button class="header-icon-btn" id="editModeToggle" onclick="toggleEditMode()" title="Toggle Edit Mode">
+                    ✏️
+                </button>
+                <button class="lang-toggle-btn" onclick="toggleLanguage()" title="Toggle language">
+                    <span class="lang-icon">ע</span>
+                </button>
+                <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="Toggle dark mode">
+                    <span class="dark-mode-icon">🌙</span>
+                </button>
+            </div>
+            <div class="hamburger-menu" onclick="toggleMobileMenu()">
+                <div class="hamburger-line"></div>
+                <div class="hamburger-line"></div>
+                <div class="hamburger-line"></div>
+            </div>
+        </div>
+
+
+
+        <div class="controls">
+            <input type="file" id="importFile" class="file-input" accept=".json" onchange="importConfig(event)">
+        </div>
+
+        <!-- Mobile Menu Overlay -->
+        <div class="mobile-menu-overlay" onclick="closeMobileMenu()"></div>
+        
+        <!-- Mobile Menu -->
+        <div class="mobile-menu">
+            <div class="mobile-menu-header">
+                <div class="mobile-menu-title">Menu</div>
+                <button class="mobile-menu-close" onclick="closeMobileMenu()">✕</button>
+            </div>
+            
+            <div class="mobile-search-container">
+                <div class="mobile-search-wrapper">
+                    <input type="text" id="mobileFilterInput" class="mobile-search-input" placeholder="Search servers...">
+                    <button class="mobile-search-clear-btn" id="mobileSearchClearBtn" onclick="clearMobileSearch()" title="Clear search">
+                        ✕
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mobile-menu-section">
+                <div class="mobile-menu-section-title">Actions</div>
+                <div class="mobile-menu-item" onclick="checkAllServerStatuses(); closeMobileMenu();">
+                    <div class="mobile-menu-item-icon">🔄</div>
+                    <div class="mobile-menu-item-text">Check All Statuses</div>
+                </div>
+                <div class="mobile-menu-item" onclick="exportConfig(); closeMobileMenu();">
+                    <div class="mobile-menu-item-icon">💾</div>
+                    <div class="mobile-menu-item-text">Export Config</div>
+                </div>
+                <div class="mobile-menu-item" onclick="document.getElementById('importFile').click(); closeMobileMenu();">
+                    <div class="mobile-menu-item-icon">📁</div>
+                    <div class="mobile-menu-item-text">Import Config</div>
+                </div>
+                <div class="mobile-menu-item" onclick="showAddCategoryModal(); closeMobileMenu();">
+                    <div class="mobile-menu-item-icon">➕</div>
+                    <div class="mobile-menu-item-text">Add Category</div>
+                </div>
+            </div>
+            
+            <div class="mobile-menu-section">
+                <div class="mobile-menu-section-title">Settings</div>
+                <div class="mobile-menu-item" onclick="toggleLanguage(); closeMobileMenu();">
+                    <div class="mobile-menu-item-icon">🌐</div>
+                    <div class="mobile-menu-item-text">Toggle Language</div>
+                </div>
+                <div class="mobile-menu-item" onclick="toggleDarkMode(); closeMobileMenu();">
+                    <div class="mobile-menu-item-icon">🌙</div>
+                    <div class="mobile-menu-item-text">Toggle Dark Mode</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="categoriesGrid" class="categories-grid">
+            <!-- Categories will be rendered here -->
+        </div>
+    </div>
+
+    <!-- Add Category Modal -->
+    <div id="addCategoryModal" class="modal-overlay hidden" onclick="hideAddCategoryModal(event)">
+        <div class="modal" onclick="event.stopPropagation()" dir="auto">
+            <h3>Add New Category</h3>
+            <div class="form-group">
+                <label>Category Name:</label>
+                <input type="text" id="categoryName" class="input" placeholder="">
+            </div>
+            <div class="form-group">
+                <label>Category Type:</label>
+                <select id="categoryType" class="input">
+                    <option value="media">📺 Media</option>
+                    <option value="network">🌐 Network</option>
+                    <option value="storage">💾 Storage</option>
+                    <option value="services">⚙️ Services</option>
+                    <option value="development">💻 Development</option>
+                    <option value="monitoring">📊 Monitoring</option>
+                    <option value="security">🔒 Security</option>
+                    <option value="communication">💬 Communication</option>
+                    <option value="productivity">📝 Productivity</option>
+                    <option value="gaming">🎮 Gaming</option>
+                    <option value="database">🗄️ Database</option>
+                    <option value="automation">🤖 Automation</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="category-border-color-label">Category Border Color:</label>
+                <div class="color-picker">
+                    <div class="color-option" style="background: #3b82f6;" data-color="#3b82f6" onclick="selectCategoryColor('#3b82f6')"></div>
+                    <div class="color-option" style="background: #ef4444;" data-color="#ef4444" onclick="selectCategoryColor('#ef4444')"></div>
+                    <div class="color-option" style="background: #22c55e;" data-color="#22c55e" onclick="selectCategoryColor('#22c55e')"></div>
+                    <div class="color-option" style="background: #f97316;" data-color="#f97316" onclick="selectCategoryColor('#f97316')"></div>
+                    <div class="color-option" style="background: #8b5cf6;" data-color="#8b5cf6" onclick="selectCategoryColor('#8b5cf6')"></div>
+                    <div class="color-option" style="background: #ec4899;" data-color="#ec4899" onclick="selectCategoryColor('#ec4899')"></div>
+                    <div class="color-option" style="background: #06b6d4;" data-color="#06b6d4" onclick="selectCategoryColor('#06b6d4')"></div>
+                    <div class="color-option" style="background: #84cc16;" data-color="#84cc16" onclick="selectCategoryColor('#84cc16')"></div>
+                    <div class="color-option" style="background: #f59e0b;" data-color="#f59e0b" onclick="selectCategoryColor('#f59e0b')"></div>
+                    <div class="color-option" style="background: #10b981;" data-color="#10b981" onclick="selectCategoryColor('#10b981')"></div>
+                    <div class="color-option" style="background: #6366f1;" data-color="#6366f1" onclick="selectCategoryColor('#6366f1')"></div>
+                    <div class="color-option" style="background: #8b5a2b;" data-color="#8b5a2b" onclick="selectCategoryColor('#8b5a2b')"></div>
+                    <div class="color-option" style="background: #6b7280;" data-color="#6b7280" onclick="selectCategoryColor('#6b7280')"></div>
+                    <div class="color-option" style="background: #000000;" data-color="#000000" onclick="selectCategoryColor('#000000')"></div>
+                    <div class="color-option" style="background: #ffffff; border: 2px solid #ccc;" data-color="#ffffff" onclick="selectCategoryColor('#ffffff')"></div>
+                </div>
+                <input type="hidden" id="categoryBorderColor" value="#3b82f6">
+            </div>
+            <div class="modal-actions">
+                
+                <button class="btn btn-secondary" onclick="hideAddCategoryModal()">Cancel</button><button class="btn btn-primary" onclick="addCategory()" id="addCategoryBtn">➕ Add Category</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Category Modal -->
+    <div id="editCategoryModal" class="modal-overlay hidden" onclick="hideEditCategoryModal(event)">
+        <div class="modal" onclick="event.stopPropagation()" dir="auto">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>Edit Category</h3>
+                <button class="btn btn-danger" onclick="deleteCategoryFromModal()" style="background: #ef4444; color: white; border: 1px solid #ef4444; padding: 0.5rem; min-width: 2.5rem; height: 2.5rem; display: flex; align-items: center; justify-content: center;" id="deleteCategoryBtn" title="Delete Category">🗑️</button>
+            </div>
+            <div class="form-group">
+                <label>Category Name:</label>
+                <input type="text" id="editCategoryName" class="input" placeholder="e.g., Media Servers">
+            </div>
+            <div class="form-group">
+                <label>Category Type:</label>
+                <select id="editCategoryType" class="input">
+                    <option value="media">📺 Media</option>
+                    <option value="network">🌐 Network</option>
+                    <option value="storage">💾 Storage</option>
+                    <option value="services">⚙️ Services</option>
+                    <option value="development">💻 Development</option>
+                    <option value="monitoring">📊 Monitoring</option>
+                    <option value="security">🔒 Security</option>
+                    <option value="communication">💬 Communication</option>
+                    <option value="productivity">📝 Productivity</option>
+                    <option value="gaming">🎮 Gaming</option>
+                    <option value="database">🗄️ Database</option>
+                    <option value="automation">🤖 Automation</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="edit-category-border-color-label">Category Border Color:</label>
+                <div class="color-picker">
+                    <div class="color-option" style="background: #3b82f6;" data-color="#3b82f6" onclick="selectEditCategoryColor('#3b82f6')"></div>
+                    <div class="color-option" style="background: #ef4444;" data-color="#ef4444" onclick="selectEditCategoryColor('#ef4444')"></div>
+                    <div class="color-option" style="background: #22c55e;" data-color="#22c55e" onclick="selectEditCategoryColor('#22c55e')"></div>
+                    <div class="color-option" style="background: #f97316;" data-color="#f97316" onclick="selectEditCategoryColor('#f97316')"></div>
+                    <div class="color-option" style="background: #8b5cf6;" data-color="#8b5cf6" onclick="selectEditCategoryColor('#8b5cf6')"></div>
+                    <div class="color-option" style="background: #ec4899;" data-color="#ec4899" onclick="selectEditCategoryColor('#ec4899')"></div>
+                    <div class="color-option" style="background: #06b6d4;" data-color="#06b6d4" onclick="selectEditCategoryColor('#06b6d4')"></div>
+                    <div class="color-option" style="background: #84cc16;" data-color="#84cc16" onclick="selectEditCategoryColor('#84cc16')"></div>
+                    <div class="color-option" style="background: #f59e0b;" data-color="#f59e0b" onclick="selectEditCategoryColor('#f59e0b')"></div>
+                    <div class="color-option" style="background: #10b981;" data-color="#10b981" onclick="selectEditCategoryColor('#10b981')"></div>
+                    <div class="color-option" style="background: #6366f1;" data-color="#6366f1" onclick="selectEditCategoryColor('#6366f1')"></div>
+                    <div class="color-option" style="background: #8b5a2b;" data-color="#8b5a2b" onclick="selectEditCategoryColor('#8b5a2b')"></div>
+                    <div class="color-option" style="background: #6b7280;" data-color="#6b7280" onclick="selectEditCategoryColor('#6b7280')"></div>
+                    <div class="color-option" style="background: #000000;" data-color="#000000" onclick="selectEditCategoryColor('#000000')"></div>
+                    <div class="color-option" style="background: #ffffff; border: 2px solid #ccc;" data-color="#ffffff" onclick="selectEditCategoryColor('#ffffff')"></div>
+                </div>
+                <input type="hidden" id="editCategoryBorderColor" value="#3b82f6">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="hideEditCategoryModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveEditCategory()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Server Modal -->
+    <div id="editServerModal" class="modal-overlay hidden" onclick="hideEditServerModal(event)">
+        <div class="modal" onclick="event.stopPropagation()" dir="auto">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>Edit Server</h3>
+                <button class="btn btn-danger" onclick="deleteServerFromModal()" style="background: #ef4444; color: white; border: 1px solid #ef4444; padding: 0.5rem; min-width: 2.5rem; height: 2.5rem; display: flex; align-items: center; justify-content: center;" id="deleteServerBtn" title="Delete Server">🗑️</button>
+            </div>
+            <div class="form-group">
+                <label>Server Name:</label>
+                <input type="text" id="editServerName" class="input" placeholder="">
+            </div>
+            <div class="form-group">
+                <label>Server URL:</label>
+                <input type="text" id="editServerUrl" class="input" placeholder="">
+            </div>
+            <div class="form-group">
+                <label class="server-border-color-label">Server Border Color:</label>
+                <div class="color-picker">
+                    <div class="color-option" style="background: #3b82f6;" data-color="#3b82f6" onclick="selectServerColor('#3b82f6')"></div>
+                    <div class="color-option" style="background: #ef4444;" data-color="#ef4444" onclick="selectServerColor('#ef4444')"></div>
+                    <div class="color-option" style="background: #22c55e;" data-color="#22c55e" onclick="selectServerColor('#22c55e')"></div>
+                    <div class="color-option" style="background: #f97316;" data-color="#f97316" onclick="selectServerColor('#f97316')"></div>
+                    <div class="color-option" style="background: #8b5cf6;" data-color="#8b5cf6" onclick="selectServerColor('#8b5cf6')"></div>
+                    <div class="color-option" style="background: #ec4899;" data-color="#ec4899" onclick="selectServerColor('#ec4899')"></div>
+                    <div class="color-option" style="background: #06b6d4;" data-color="#06b6d4" onclick="selectServerColor('#06b6d4')"></div>
+                    <div class="color-option" style="background: #84cc16;" data-color="#84cc16" onclick="selectServerColor('#84cc16')"></div>
+                    <div class="color-option" style="background: #f59e0b;" data-color="#f59e0b" onclick="selectServerColor('#f59e0b')"></div>
+                    <div class="color-option" style="background: #10b981;" data-color="#10b981" onclick="selectServerColor('#10b981')"></div>
+                    <div class="color-option" style="background: #6366f1;" data-color="#6366f1" onclick="selectServerColor('#6366f1')"></div>
+                    <div class="color-option" style="background: #8b5a2b;" data-color="#8b5a2b" onclick="selectServerColor('#8b5a2b')"></div>
+                    <div class="color-option" style="background: #6b7280;" data-color="#6b7280" onclick="selectServerColor('#6b7280')"></div>
+                    <div class="color-option" style="background: #000000;" data-color="#000000" onclick="selectServerColor('#000000')"></div>
+                    <div class="color-option" style="background: #ffffff; border: 2px solid #ccc;" data-color="#ffffff" onclick="selectServerColor('#ffffff')"></div>
+                </div>
+                <input type="hidden" id="editServerBorderColor" value="#94a3b8">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="hideEditServerModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveServerEdit()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Header Modal -->
+    <div id="editHeaderModal" class="modal-overlay hidden" onclick="hideEditHeaderModal(event)">
+        <div class="modal" onclick="event.stopPropagation()" dir="auto">
+            <h3>Edit Header</h3>
+            <div class="form-group">
+                <label>Title:</label>
+                <input type="text" id="editHeaderTitle" class="input" placeholder="e.g., 🏠 Home Server Dashboard">
+            </div>
+            <div class="form-group">
+                <label>Subtitle:</label>
+                <input type="text" id="editHeaderSubtitle" class="input" placeholder="e.g., Manage your local servers and services">
+            </div>
+            <div class="form-group">
+                <label class="header-title-color-label">Title Color:</label>
+                <div class="color-picker">
+                    <div class="color-option" style="background: #3b82f6;" data-color="#3b82f6" onclick="selectHeaderTitleColor('#3b82f6')"></div>
+                    <div class="color-option" style="background: #ef4444;" data-color="#ef4444" onclick="selectHeaderTitleColor('#ef4444')"></div>
+                    <div class="color-option" style="background: #22c55e;" data-color="#22c55e" onclick="selectHeaderTitleColor('#22c55e')"></div>
+                    <div class="color-option" style="background: #f97316;" data-color="#f97316" onclick="selectHeaderTitleColor('#f97316')"></div>
+                    <div class="color-option" style="background: #8b5cf6;" data-color="#8b5cf6" onclick="selectHeaderTitleColor('#8b5cf6')"></div>
+                    <div class="color-option" style="background: #ec4899;" data-color="#ec4899" onclick="selectHeaderTitleColor('#ec4899')"></div>
+                    <div class="color-option" style="background: #06b6d4;" data-color="#06b6d4" onclick="selectHeaderTitleColor('#06b6d4')"></div>
+                    <div class="color-option" style="background: #84cc16;" data-color="#84cc16" onclick="selectHeaderTitleColor('#84cc16')"></div>
+                    <div class="color-option" style="background: #f59e0b;" data-color="#f59e0b" onclick="selectHeaderTitleColor('#f59e0b')"></div>
+                    <div class="color-option" style="background: #10b981;" data-color="#10b981" onclick="selectHeaderTitleColor('#10b981')"></div>
+                    <div class="color-option" style="background: #6366f1;" data-color="#6366f1" onclick="selectHeaderTitleColor('#6366f1')"></div>
+                    <div class="color-option" style="background: #8b5a2b;" data-color="#8b5a2b" onclick="selectHeaderTitleColor('#8b5a2b')"></div>
+                    <div class="color-option" style="background: #6b7280;" data-color="#6b7280" onclick="selectHeaderTitleColor('#6b7280')"></div>
+                    <div class="color-option" style="background: #000000;" data-color="#000000" onclick="selectHeaderTitleColor('#000000')"></div>
+                    <div class="color-option" style="background: #ffffff; border: 2px solid #ccc;" data-color="#ffffff" onclick="selectHeaderTitleColor('#ffffff')"></div>
+                </div>
+                <input type="hidden" id="headerTitleColor" value="#3b82f6">
+            </div>
+            <div class="form-group">
+                <label class="header-subtitle-color-label">Subtitle Color:</label>
+                <div class="color-picker">
+                    <div class="color-option" style="background: #3b82f6;" data-color="#3b82f6" onclick="selectHeaderSubtitleColor('#3b82f6')"></div>
+                    <div class="color-option" style="background: #ef4444;" data-color="#ef4444" onclick="selectHeaderSubtitleColor('#ef4444')"></div>
+                    <div class="color-option" style="background: #22c55e;" data-color="#22c55e" onclick="selectHeaderSubtitleColor('#22c55e')"></div>
+                    <div class="color-option" style="background: #f97316;" data-color="#f97316" onclick="selectHeaderSubtitleColor('#f97316')"></div>
+                    <div class="color-option" style="background: #8b5cf6;" data-color="#8b5cf6" onclick="selectHeaderSubtitleColor('#8b5cf6')"></div>
+                    <div class="color-option" style="background: #ec4899;" data-color="#ec4899" onclick="selectHeaderSubtitleColor('#ec4899')"></div>
+                    <div class="color-option" style="background: #06b6d4;" data-color="#06b6d4" onclick="selectHeaderSubtitleColor('#06b6d4')"></div>
+                    <div class="color-option" style="background: #84cc16;" data-color="#84cc16" onclick="selectHeaderSubtitleColor('#84cc16')"></div>
+                    <div class="color-option" style="background: #f59e0b;" data-color="#f59e0b" onclick="selectHeaderSubtitleColor('#f59e0b')"></div>
+                    <div class="color-option" style="background: #10b981;" data-color="#10b981" onclick="selectHeaderSubtitleColor('#10b981')"></div>
+                    <div class="color-option" style="background: #6366f1;" data-color="#6366f1" onclick="selectHeaderSubtitleColor('#6366f1')"></div>
+                    <div class="color-option" style="background: #8b5a2b;" data-color="#8b5a2b" onclick="selectHeaderSubtitleColor('#8b5a2b')"></div>
+                    <div class="color-option" style="background: #6b7280;" data-color="#6b7280" onclick="selectHeaderSubtitleColor('#6b7280')"></div>
+                    <div class="color-option" style="background: #000000;" data-color="#000000" onclick="selectHeaderSubtitleColor('#000000')"></div>
+                    <div class="color-option" style="background: #ffffff; border: 2px solid #ccc;" data-color="#ffffff" onclick="selectHeaderSubtitleColor('#ffffff')"></div>
+                </div>
+                <input type="hidden" id="headerSubtitleColor" value="#6b7280">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="hideEditHeaderModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveHeaderEdit()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Security validation functions
+        function sanitizeHtml(str) {
+            if (typeof str !== 'string') return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function isValidUrl(string) {
+            try {
+                const url = new URL(string);
+                const allowedProtocols = ['http:', 'https:'];
+                return allowedProtocols.includes(url.protocol);
+            } catch {
+                return false;
+            }
+        }
+
+        function validateString(str, maxLength = 100) {
+            const result = typeof str === 'string' && str.length > 0 && str.length <= maxLength;
+            if (!result) {
+                console.log('❌ String validation failed:', { str, type: typeof str, length: str?.length, maxLength });
+            }
+            return result;
+        }
+
+        function validateCategory(category) {
+            console.log('🔍 validateCategory called with:', category);
+            if (!category || typeof category !== 'object') {
+                console.log('❌ Category is not an object');
+                return false;
+            }
+            
+            if (!validateString(category.name, 50)) {
+                console.log('❌ Category name validation failed:', category.name);
+                return false;
+            }
+            if (!validateString(category.type, 20)) {
+                console.log('❌ Category type validation failed:', category.type);
+                return false;
+            }
+            if (!validateString(category.id, 20)) {
+                console.log('❌ Category id validation failed:', category.id);
+                return false;
+            }
+            
+            const validTypes = ['media', 'network', 'storage', 'services', 'development', 'monitoring', 'security', 'communication', 'productivity', 'gaming', 'database', 'automation'];
+            if (!validTypes.includes(category.type)) {
+                console.log('❌ Category type not in valid types:', category.type);
+                return false;
+            }
+            
+            if (!Array.isArray(category.servers)) {
+                console.log('❌ Category servers is not an array');
+                return false;
+            }
+            
+            for (const server of category.servers) {
+                console.log('🔍 Validating server in category:', server);
+                if (!validateServer(server)) {
+                    console.log('❌ Server validation failed in category:', server);
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+
+        function validateServer(server) {
+            console.log('🔍 validateServer called with:', server);
+            if (!server || typeof server !== 'object') {
+                console.log('❌ Server is not an object');
+                return false;
+            }
+            
+            if (!validateString(server.name, 50)) {
+                console.log('❌ Server name validation failed:', server.name);
+                return false;
+            }
+            if (!validateString(server.id, 20)) {
+                console.log('❌ Server id validation failed:', server.id);
+                return false;
+            }
+            if (!isValidUrl(server.url)) {
+                console.log('❌ Server URL validation failed:', server.url);
+                return false;
+            }
+            
+            console.log('✅ validateServer passed for:', server.name);
+            return true;
+        }
+
+        function validateImportedData(data) {
+            console.log('🔍 validateImportedData called with:', data);
+            if (!data || typeof data !== 'object') {
+                console.log('❌ Data is not an object');
+                return false;
+            }
+            
+            // Validate header data
+            if (data.headerTitle && !validateString(data.headerTitle, 100)) {
+                console.log('❌ Header title validation failed:', data.headerTitle);
+                return false;
+            }
+            if (data.headerSubtitle && !validateString(data.headerSubtitle, 200)) {
+                console.log('❌ Header subtitle validation failed:', data.headerSubtitle);
+                return false;
+            }
+            
+            // Validate categories
+            if (data.categories) {
+                console.log('🔍 Validating categories array:', data.categories);
+                if (!Array.isArray(data.categories)) {
+                    console.log('❌ Categories is not an array');
+                    return false;
+                }
+                if (data.categories.length > 50) {
+                    console.log('❌ Too many categories:', data.categories.length);
+                    return false;
+                }
+                
+                for (const category of data.categories) {
+                    console.log('🔍 Validating category:', category);
+                    if (!validateCategory(category)) {
+                        console.log('❌ Category validation failed:', category);
+                        return false;
+                    }
+                }
+            }
+            
+            return true;
+        }
+
+        // Data structure and state management
+        let currentLanguage = 'en';
+        let filteredCategories = [];
+        let headerTitle = "🏠 Home Server Dashboard";
+        let headerSubtitle = "Manage your local servers and services";
+        let currentTheme = localStorage.getItem('dashboardTheme') || 'light';
+        let categories = [
+            {
+                id: '1',
+                name: 'Media Servers',
+                type: 'media',
+                borderColor: '#ef4444',
+                servers: [
+                    { id: '1', name: 'Plex Server', url: 'http://192.168.1.100:32400', status: 'online', borderColor: '#22c55e' },
+                    { id: '2', name: 'Jellyfin', url: 'http://192.168.1.100:8096', status: 'online', borderColor: '#8b5cf6' }
+                ]
+            },
+            {
+                id: '2',
+                name: 'Network Services',
+                type: 'network',
+                borderColor: '#22c55e',
+                servers: [
+                    { id: '3', name: 'Pi-hole', url: 'http://192.168.1.101/admin', status: 'online', borderColor: '#06b6d4' },
+                    { id: '4', name: 'Router Admin', url: 'http://192.168.1.1', status: 'warning', borderColor: '#f97316' }
+                ]
+            },
+            {
+                id: '3',
+                name: 'Storage & Backup',
+                type: 'storage',
+                borderColor: '#f97316',
+                servers: [
+                    { id: '5', name: 'Nextcloud', url: 'http://192.168.1.102:8080', status: 'online', borderColor: '#3b82f6' },
+                    { id: '6', name: 'NAS Web UI', url: 'http://192.168.1.103:5000', status: 'offline', borderColor: '#ec4899' }
+                ]
+            }
+        ];
+
+        // Get the JSON filename based on current HTML filename
+        function getJsonFilename() {
+            const currentFilename = window.location.pathname.split('/').pop() || 'index - lovable.html';
+            return currentFilename.replace('.html', '.json');
+        }
+
+        // Load data from localStorage first, fallback to JSON file
+        async function loadData() {
+            // Check for reset parameter in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const hasResetParam = urlParams.has('reset') || window.location.pathname.includes('/?reset');
+            
+            if (hasResetParam) {
+                console.log('🔄 Reset parameter detected, loading from JSON file...');
+                // Clear localStorage to force loading from JSON file
+                localStorage.removeItem('homeServerDashboard');
+                // Remove reset parameter from URL without page reload
+                const newUrl = window.location.pathname + window.location.search.replace(/[?&]reset/, '').replace(/^&/, '?');
+                window.history.replaceState({}, '', newUrl);
+            }
+            
+            // Try to load from localStorage first (unless reset was requested)
+            const saved = localStorage.getItem('homeServerDashboard');
+            if (saved && !hasResetParam) {
+                try {
+                    console.log('📱 Loading configuration from localStorage...');
+                    const data = JSON.parse(saved);
+                    
+                    // Validate the data structure
+                    if (validateImportedData(data)) {
+                        categories = data.categories || categories;
+                        headerTitle = data.headerTitle || headerTitle;
+                        headerSubtitle = data.headerSubtitle || headerSubtitle;
+                        
+                        // Initialize status indicators for all servers (default to offline)
+                        categories.forEach(category => {
+                            category.servers.forEach(server => {
+                                if (!server.status) {
+                                    server.status = 'offline';
+                                }
+                            });
+                        });
+                        
+                        // Apply header colors if they exist
+                        if (data.headerTitleColor) {
+                            localStorage.setItem('headerTitleColor', data.headerTitleColor);
+                        }
+                        if (data.headerSubtitleColor) {
+                            localStorage.setItem('headerSubtitleColor', data.headerSubtitleColor);
+                        }
+                        if (data.currentLanguage) {
+                            setLanguage(data.currentLanguage);
+                        }
+                        
+                        console.log('✅ Configuration loaded from localStorage successfully');
+                        
+                        // Store initial data for comparison (only categories and servers)
+                        initialData = {
+                            categories: categories,
+                            headerTitle: headerTitle,
+                            headerSubtitle: headerSubtitle
+                        };
+                        return;
+                    }
+                } catch (error) {
+                    console.log('❌ Failed to load from localStorage:', error);
+                }
+            }
+            
+            // Fallback to JSON file
+            const jsonFilename = getJsonFilename();
+            try {
+                console.log('📁 Loading configuration from file...');
+                console.log('🔍 Attempting to fetch:', jsonFilename);
+                
+                // Try to load from JSON file
+                const response = await fetch(jsonFilename);
+                console.log('📡 Response status:', response.status, response.statusText);
+                if (response.ok) {
+                    console.log('📄 About to parse JSON...');
+                    let fileData;
+                    try {
+                        fileData = await response.json();
+                        console.log('📄 Raw JSON data received:', fileData);
+                        console.log('📄 JSON data type:', typeof fileData);
+                        console.log('📄 JSON data keys:', Object.keys(fileData || {}));
+                    } catch (jsonError) {
+                        console.log('❌ JSON parsing failed:', jsonError);
+                        const responseText = await response.text();
+                        console.log('📄 Response text:', responseText);
+                        throw jsonError;
+                    }
+                    
+                    // Validate the data structure
+                    console.log('🔍 Starting validation...');
+                    
+                    // Check if fileData is null, undefined, or empty
+                    if (!fileData) {
+                        console.log('❌ JSON data is null or undefined');
+                        throw new Error('JSON data is null or undefined');
+                    }
+                    
+                    const validationResult = validateImportedData(fileData);
+                    console.log('🔍 Validation result:', validationResult);
+                    if (validationResult) {
+                        categories = fileData.categories || categories;
+                        headerTitle = fileData.headerTitle || headerTitle;
+                        headerSubtitle = fileData.headerSubtitle || headerSubtitle;
+                        
+                        // Initialize status indicators for all servers (default to offline)
+                        categories.forEach(category => {
+                            category.servers.forEach(server => {
+                                if (!server.status) {
+                                    server.status = 'offline';
+                                }
+                            });
+                        });
+                        
+                        // Apply header colors if they exist
+                        if (fileData.headerTitleColor) {
+                            localStorage.setItem('headerTitleColor', fileData.headerTitleColor);
+                        }
+                        if (fileData.headerSubtitleColor) {
+                            localStorage.setItem('headerSubtitleColor', fileData.headerSubtitleColor);
+                        }
+                        if (fileData.currentLanguage) {
+                            setLanguage(fileData.currentLanguage);
+                        }
+                        
+                        console.log('✅ Configuration loaded from file successfully');
+                        
+                        // Store initial data for comparison (only categories and servers)
+                        initialData = {
+                            categories: categories,
+                            headerTitle: headerTitle,
+                            headerSubtitle: headerSubtitle
+                        };
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.log('❌ Failed to load from file:', error);
+                console.log('🔍 Error details:', error.message, error.name);
+            }
+            
+            // If both localStorage and file fail, use default data
+            console.log('📋 Using default configuration');
+            
+            // Store initial data for comparison (only categories and servers)
+            initialData = {
+                categories: categories,
+                headerTitle: headerTitle,
+                headerSubtitle: headerSubtitle
+            };
+        }
+
+        // Mobile menu functions
+        function toggleMobileMenu() {
+            const hamburger = document.querySelector('.hamburger-menu');
+            const overlay = document.querySelector('.mobile-menu-overlay');
+            const menu = document.querySelector('.mobile-menu');
+            
+            hamburger.classList.toggle('active');
+            overlay.classList.toggle('active');
+            menu.classList.toggle('active');
+            
+            // Prevent body scroll when menu is open
+            document.body.style.overflow = menu.classList.contains('active') ? 'hidden' : '';
+        }
+
+        function closeMobileMenu() {
+            const hamburger = document.querySelector('.hamburger-menu');
+            const overlay = document.querySelector('.mobile-menu-overlay');
+            const menu = document.querySelector('.mobile-menu');
+            
+            hamburger.classList.remove('active');
+            overlay.classList.remove('active');
+            menu.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Initialize theme
+        function initTheme() {
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            updateDarkModeIcon();
+            updateLanguageIcon();
+        }
+
+        // Toggle dark mode
+        function toggleDarkMode() {
+            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            localStorage.setItem('dashboardTheme', currentTheme);
+            updateDarkModeIcon();
+        }
+
+        // Update dark mode icon
+        function updateDarkModeIcon() {
+            const icon = document.querySelector('.dark-mode-icon');
+            if (icon) {
+                icon.textContent = currentTheme === 'light' ? '🌙' : '☀️';
+            }
+        }
+
+        // Toggle language
+        function toggleLanguage() {
+            const newLang = currentLanguage === 'en' ? 'he' : 'en';
+            setLanguage(newLang);
+            updateLanguageIcon();
+        }
+
+        // Toggle edit mode
+        function toggleEditMode() {
+            const container = document.querySelector('.container');
+            const toggleBtn = document.getElementById('editModeToggle');
+            
+            if (container.classList.contains('edit-mode')) {
+                // Exiting edit mode - check for unsaved changes
+                if (hasDataChanged()) {
+                    showChangesNotification();
+                }
+                
+                container.classList.remove('edit-mode');
+                toggleBtn.style.background = 'var(--btn-secondary-bg)';
+                toggleBtn.style.color = 'var(--text-muted)';
+            } else {
+                // Entering edit mode
+                container.classList.add('edit-mode');
+                toggleBtn.style.background = 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
+                toggleBtn.style.color = 'white';
+            }
+            
+            // Refresh header text to show/hide edit buttons
+            updateTexts();
+        }
+
+        // Update language icon
+        function updateLanguageIcon() {
+            const icon = document.querySelector('.lang-icon');
+            if (icon) {
+                icon.textContent = currentLanguage === 'en' ? 'ע' : 'E';
+            }
+        }
+
+        // Save data to both localStorage and JSON file
+        async function saveData() {
+            console.log('Saving data to localStorage...');
+            
+            // Strip status indicators before saving to localStorage
+            const dataToSave = stripStatusIndicators({
+                categories,
+                headerTitle,
+                headerSubtitle,
+                headerTitleColor: localStorage.getItem('headerTitleColor') || '#3b82f6',
+                headerSubtitleColor: localStorage.getItem('headerSubtitleColor') || '#6b7280',
+                currentLanguage: currentLanguage
+            });
+            
+            // Always save to localStorage first
+            localStorage.setItem('homeServerDashboard', JSON.stringify(dataToSave));
+            console.log('Data saved to localStorage successfully');
+            console.log('Categories saved:', JSON.stringify(dataToSave.categories, null, 2));
+            
+            // Note: JSON file saving is now manual via export function
+            // This prevents automatic popup downloads
+        }
+
+        // Store initial data for comparison
+        let initialData = null;
+
+        // Helper function to strip status indicators from data for comparison
+        function stripStatusIndicators(data) {
+            if (!data || !data.categories) {
+                return data;
+            }
+            
+            const strippedData = {
+                categories: data.categories.map(category => ({
+                    id: category.id,
+                    name: category.name,
+                    type: category.type,
+                    borderColor: category.borderColor,
+                    servers: category.servers.map(server => ({
+                        id: server.id,
+                        name: server.name,
+                        url: server.url,
+                        borderColor: server.borderColor
+                        // status is intentionally excluded
+                    }))
+                })),
+                headerTitle: data.headerTitle,
+                headerSubtitle: data.headerSubtitle
+            };
+            
+            return strippedData;
+        }
+
+        // Compare current data with initial data to detect actual changes
+        function hasDataChanged() {
+            if (!initialData) {
+                return false; // No initial data to compare
+            }
+            
+            try {
+                // Compare only categories and servers (ignore language, theme, status indicators, etc.)
+                const currentData = {
+                    categories: categories,
+                    headerTitle: headerTitle,
+                    headerSubtitle: headerSubtitle
+                };
+                
+                // Strip status indicators from both current and initial data before comparison
+                const strippedCurrentData = stripStatusIndicators(currentData);
+                const strippedInitialData = stripStatusIndicators(initialData);
+                
+                // Deep comparison of categories and servers (excluding status indicators)
+                return JSON.stringify(strippedCurrentData) !== JSON.stringify(strippedInitialData);
+            } catch (error) {
+                console.log('Error comparing data:', error);
+                return false;
+            }
+        }
+
+        // Show notification for unsaved changes
+        function showChangesNotification() {
+            const notification = document.getElementById('changesNotification');
+            if (notification) {
+                notification.textContent = t('changesNotSaved');
+                notification.classList.add('show');
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 5000);
+            }
+        }
+
+        // Hide notification
+        function hideChangesNotification() {
+            const notification = document.getElementById('changesNotification');
+            if (notification) {
+                notification.classList.remove('show');
+            }
+        }
+
+        // Get icon for category type
+        function getCategoryIcon(type) {
+            const icons = {
+                'media': '📺',
+                'network': '🌐',
+                'storage': '💾',
+                'services': '⚙️',
+                'development': '💻',
+                'monitoring': '📊',
+                'security': '🔒',
+                'communication': '💬',
+                'productivity': '📝',
+                'gaming': '🎮',
+                'database': '🗄️',
+                'automation': '🤖'
+            };
+            return icons[type] || '📁';
+        }
+
+        // Translations
+        const translations = {
+            en: {
+                title: "🏠 Home Server Dashboard",
+                subtitle: "Manage your local servers and services",
+                addCategory: "➕ Add Category",
+                exportConfig: "💾 Export Config",
+                importConfig: "📁 Import Config",
+                addServer: "➕ Add Server",
+                filterPlaceholder: "Filter servers or categories...",
+                editCategory: "Edit category",
+                deleteCategory: "Delete category",
+                editServer: "Edit server",
+                openServer: "Open server",
+                deleteServer: "Delete server",
+                addNewCategory: "Add New Category",
+                addNewServer: "Add New Server",
+                categoryName: "Category Name:",
+                categoryType: "Category Type:",
+                categoryBorderColor: "Category Border Color:",
+                cancel: "Cancel",
+                editServerTitle: "Edit Server",
+                serverName: "Server Name:",
+                serverUrl: "Server URL:",
+                status: "Status:",
+                serverBorderColor: "Server Border Color:",
+                online: "🟢 Online",
+                warning: "🟡 Warning",
+                offline: "🔴 Offline",
+                saveChanges: "Save Changes",
+                deleteConfirm: "Delete this server?",
+                deleteCategoryConfirm: "Delete this entire category?",
+                importConfirm: "This will replace your current configuration. Continue?",
+                invalidConfig: "Invalid configuration file",
+                serverNotFound: "Server not found. Please try again.",
+                fillRequiredFields: "Please fill in all required fields.",
+                checkingStatus: "Checking server status...",
+                statusCheckFailed: "Status check failed",
+                checkStatus: "Check Status",
+                // Tooltips
+                clearSearch: "Clear search",
+                checkServerStatuses: "Check server statuses",
+                exportConfigTooltip: "Export Config",
+                importConfigTooltip: "Import Config",
+                addCategoryTooltip: "Add Category",
+                toggleLanguage: "Toggle language",
+                toggleDarkMode: "Toggle dark mode",
+                toggleEditMode: "Toggle Edit Mode",
+                clickToEdit: "Click to edit",
+                clickToCheckStatus: "Click to check status",
+
+                editHeader: "Edit header",
+                editHeaderTitle: "Edit Header",
+                headerTitleLabel: "Title:",
+                headerSubtitleLabel: "Subtitle:",
+                headerTitleColorLabel: "Title Color:",
+                headerSubtitleColorLabel: "Subtitle Color:",
+                // Placeholders
+                categoryNamePlaceholder: "e.g., Media Servers",
+                serverNamePlaceholder: "e.g., Plex Server",
+                serverUrlPlaceholder: "e.g., http://192.168.1.100:8080",
+                headerTitlePlaceholder: "e.g., 🏠 Home Server Dashboard",
+                headerSubtitlePlaceholder: "e.g., Manage your local servers and services",
+                // Delete buttons
+                deleteCategoryBtn: "🗑️ Delete Category",
+                deleteServerBtn: "🗑️ Delete Server",
+                // Category types
+                media: "Media",
+                network: "Network",
+                storage: "Storage",
+                services: "Services",
+                development: "Development",
+                monitoring: "Monitoring",
+                security: "Security",
+                communication: "Communication",
+                productivity: "Productivity",
+                gaming: "Gaming",
+                database: "Database",
+                automation: "Automation",
+                // Alert messages
+                changesNotSaved: "⚠️ Changes have been made! These changes have not been saved to the file.",
+                loadingFromFile: "📁 Loading configuration from file...",
+                fileLoadFailed: "❌ Failed to load from file, using local storage",
+                fileLoadSuccess: "✅ Configuration loaded from file successfully",
+                savingToFile: "💾 Saving configuration to file...",
+                fileSaveSuccess: "✅ Configuration saved to file successfully",
+                fileSaveFailed: "❌ Failed to save to file, saved to local storage only",
+                // Drag and drop
+                dragToReorderCategory: "Drag to reorder category",
+                dragToReorderServer: "Drag to reorder server",
+                // Validation messages
+                invalidUrl: "Please enter a valid URL (http:// or https://)",
+                titleTooLong: "Title is too long. Maximum 100 characters allowed.",
+                subtitleTooLong: "Subtitle is too long. Maximum 200 characters allowed.",
+                serverNameRequired: "Server name is required and must be less than 50 characters.",
+                invalidUrlFormat: "Invalid URL format",
+                categoryNameRequired: "Category name is required and must be less than 50 characters.",
+                invalidConfigFormat: "Invalid configuration format. Please check your JSON file."
+            },
+            he: {
+                title: "🏠 לוח בקרת שרתים ביתיים",
+                subtitle: "נהל את השרתים והשירותים המקומיים שלך",
+                addCategory: "➕ הוסף קטגוריה",
+                exportConfig: "💾 ייצא הגדרות",
+                importConfig: "📁 ייבא הגדרות",
+                addServer: "➕ הוסף שרת",
+                filterPlaceholder: "סנן שרתים או קטגוריות...",
+                editCategory: "ערוך קטגוריה",
+                deleteCategory: "מחק קטגוריה",
+                editServer: "ערוך שרת",
+                openServer: "פתח שרת",
+                deleteServer: "מחק שרת",
+                addNewCategory: "הוסף קטגוריה חדשה",
+                addNewServer: "הוסף שרת חדש",
+                categoryName: "שם קטגוריה:",
+                categoryType: "סוג קטגוריה:",
+                categoryBorderColor: "צבע גבול קטגוריה:",
+                cancel: "ביטול",
+                editServerTitle: "ערוך שרת",
+                serverName: "שם שרת:",
+                serverUrl: "כתובת שרת:",
+                status: "סטטוס:",
+                serverBorderColor: "צבע גבול שרת:",
+                online: "🟢 מקוון",
+                warning: "🟡 אזהרה",
+                offline: "🔴 לא מקוון",
+                saveChanges: "שמור שינויים",
+                deleteConfirm: "מחק שרת זה?",
+                deleteCategoryConfirm: "מחק קטגוריה שלמה זו?",
+                importConfirm: "זה יחליף את ההגדרות הנוכחיות שלך. להמשיך?",
+                invalidConfig: "קובץ הגדרות לא תקין",
+                serverNotFound: "שרת לא נמצא. נסה שוב.",
+                fillRequiredFields: "אנא מלא את כל השדות הנדרשים.",
+                checkingStatus: "בודק סטטוס שרת...",
+                statusCheckFailed: "בדיקת סטטוס נכשלה",
+                checkStatus: "בדוק סטטוס",
+                // Tooltips
+                clearSearch: "נקה חיפוש",
+                checkServerStatuses: "בדוק סטטוס שרתים",
+                exportConfigTooltip: "ייצא הגדרות",
+                importConfigTooltip: "ייבא הגדרות",
+                addCategoryTooltip: "הוסף קטגוריה",
+                toggleLanguage: "החלף שפה",
+                toggleDarkMode: "החלף מצב כהה",
+                toggleEditMode: "החלף מצב עידון",
+                clickToEdit: "לחץ לעריכה",
+                clickToCheckStatus: "לחץ לבדיקת סטטוס",
+
+                editHeader: "ערוך כותרת",
+                editHeaderTitle: "ערוך כותרת",
+                headerTitleLabel: "כותרת:",
+                headerSubtitleLabel: "כותרת משנה:",
+                headerTitleColorLabel: "צבע כותרת:",
+                headerSubtitleColorLabel: "צבע כותרת משנה:",
+                // Placeholders
+                categoryNamePlaceholder: "למשל, שרתי מדיה",
+                serverNamePlaceholder: "למשל, שרת Plex",
+                serverUrlPlaceholder: "למשל, http://192.168.1.100:8080",
+                headerTitlePlaceholder: "למשל, 🏠 לוח בקרת שרתים ביתיים",
+                headerSubtitlePlaceholder: "למשל, נהל את השרתים והשירותים המקומיים שלך",
+                // Delete buttons
+                deleteCategoryBtn: "🗑️ מחק קטגוריה",
+                deleteServerBtn: "🗑️ מחק שרת",
+                // Category types
+                media: "מדיה",
+                network: "רשת",
+                storage: "אחסון",
+                services: "שירותים",
+                development: "פיתוח",
+                monitoring: "ניטור",
+                security: "אבטחה",
+                communication: "תקשורת",
+                productivity: "פרודוקטיביות",
+                gaming: "משחקים",
+                database: "מסד נתונים",
+                automation: "אוטומציה",
+                // Alert messages
+                changesNotSaved: "⚠️ נעשו שינויים! שינויים אלה לא נשמרו לקובץ.",
+                loadingFromFile: "📁 טוען הגדרות מקובץ...",
+                fileLoadFailed: "❌ נכשל בטעינה מקובץ, משתמש באחסון מקומי",
+                fileLoadSuccess: "✅ הגדרות נטענו מקובץ בהצלחה",
+                savingToFile: "💾 שומר הגדרות לקובץ...",
+                fileSaveSuccess: "✅ הגדרות נשמרו לקובץ בהצלחה",
+                fileSaveFailed: "❌ נכשל בשמירה לקובץ, נשמר לאחסון מקומי בלבד",
+                // Drag and drop
+                dragToReorderCategory: "גרור לסידור מחדש של קטגוריה",
+                dragToReorderServer: "גרור לסידור מחדש של שרת",
+                // Validation messages
+                invalidUrl: "אנא הכנס כתובת URL תקינה (http:// או https://)",
+                titleTooLong: "הכותרת ארוכה מדי. מותר עד 100 תווים.",
+                subtitleTooLong: "כותרת המשנה ארוכה מדי. מותר עד 200 תווים.",
+                serverNameRequired: "שם השרת נדרש וחייב להיות פחות מ-50 תווים.",
+                invalidUrlFormat: "פורמט כתובת URL לא תקין",
+                categoryNameRequired: "שם הקטגוריה נדרש וחייב להיות פחות מ-50 תווים.",
+                invalidConfigFormat: "פורמט הגדרות לא תקין. אנא בדוק את קובץ ה-JSON שלך."
+            }
+        };
+
+        // Get translation
+        function t(key) {
+            return translations[currentLanguage][key] || translations.en[key] || key;
+        }
+
+        // Set language
+        function setLanguage(lang) {
+            currentLanguage = lang;
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'he' ? 'rtl' : 'ltr';
+            
+            updateTexts();
+            renderCategories();
+            localStorage.setItem('dashboardLanguage', lang);
+        }
+
+        // Update UI texts
+        function updateTexts() {
+            const h1 = document.querySelector('.header h1');
+            const p = document.querySelector('.header p');
+            const container = document.querySelector('.container');
+            const isEditMode = container.classList.contains('edit-mode');
+            
+            // Clear existing content
+            h1.innerHTML = '';
+            p.innerHTML = '';
+            
+            // Update text content with conditional edit buttons
+            if (isEditMode) {
+                // Use textContent for security
+                h1.textContent = headerTitle;
+                p.textContent = headerSubtitle;
+                
+                // Add edit button safely
+                const editBtn = document.createElement('button');
+                editBtn.className = 'btn btn-ghost btn-small edit-btn';
+                editBtn.textContent = '✏️';
+                editBtn.onclick = function(e) {
+                    e.stopPropagation();
+                    showEditHeaderModal();
+                };
+                editBtn.title = t('editHeader');
+                
+                h1.appendChild(editBtn);
+                
+                // Make header clickable in edit mode
+                h1.onclick = function() { showEditHeaderModal(); };
+                p.onclick = function() { showEditHeaderModal(); };
+            } else {
+                // Use textContent for security
+                h1.textContent = headerTitle;
+                p.textContent = headerSubtitle;
+                // Remove click handlers in view mode
+                h1.onclick = null;
+                p.onclick = null;
+            }
+            
+            // Update modal directions based on language
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                modal.setAttribute('dir', currentLanguage === 'he' ? 'rtl' : 'ltr');
+            });
+            
+            // Apply saved colors
+            const titleColor = localStorage.getItem('headerTitleColor') || '#3b82f6';
+            const subtitleColor = localStorage.getItem('headerSubtitleColor') || '#6b7280';
+            h1.style.color = titleColor;
+            p.style.color = subtitleColor;
+            
+            // Update page title to match header title
+            document.title = headerTitle;
+            
+            // Update tooltips with null checks
+            const searchClearBtn = document.getElementById('searchClearBtn');
+            if (searchClearBtn) searchClearBtn.title = t('clearSearch');
+            
+            const checkStatusBtn = document.querySelector('.header-icon-btn[onclick*="checkAllServerStatuses"]');
+            if (checkStatusBtn) checkStatusBtn.title = t('checkServerStatuses');
+            
+            const exportBtn = document.querySelector('.header-icon-btn[onclick*="exportConfig"]');
+            if (exportBtn) exportBtn.title = t('exportConfigTooltip');
+            
+            const importBtn = document.querySelector('.header-icon-btn[onclick*="importFile"]');
+            if (importBtn) importBtn.title = t('importConfigTooltip');
+            
+            const editModeBtn = document.getElementById('editModeToggle');
+            if (editModeBtn) editModeBtn.title = t('toggleEditMode');
+            
+            const langBtn = document.querySelector('.lang-toggle-btn');
+            if (langBtn) langBtn.title = t('toggleLanguage');
+            
+            const darkModeBtn = document.querySelector('.dark-mode-toggle');
+            if (darkModeBtn) darkModeBtn.title = t('toggleDarkMode');
+            
+            // Update placeholders
+            const filterInput = document.getElementById('filterInput');
+            if (filterInput) filterInput.placeholder = t('filterPlaceholder');
+            
+            // Update mobile menu
+            const mobileFilterInput = document.getElementById('mobileFilterInput');
+            if (mobileFilterInput) {
+                mobileFilterInput.placeholder = t('filterPlaceholder');
+            }
+            
+            // Update mobile menu title
+            const mobileMenuTitle = document.querySelector('.mobile-menu-title');
+            if (mobileMenuTitle) {
+                mobileMenuTitle.textContent = currentLanguage === 'he' ? 'תפריט' : 'Menu';
+            }
+            
+            // Update mobile menu section titles
+            const sectionTitles = document.querySelectorAll('.mobile-menu-section-title');
+            if (sectionTitles[0]) sectionTitles[0].textContent = currentLanguage === 'he' ? 'פעולות' : 'Actions';
+            if (sectionTitles[1]) sectionTitles[1].textContent = currentLanguage === 'he' ? 'הגדרות' : 'Settings';
+            
+            // Update mobile menu items
+            const menuItems = document.querySelectorAll('.mobile-menu-item-text');
+            if (menuItems[0]) menuItems[0].textContent = currentLanguage === 'he' ? 'בדוק כל הסטטוסים' : 'Check All Statuses';
+            if (menuItems[1]) menuItems[1].textContent = currentLanguage === 'he' ? 'ייצא הגדרות' : 'Export Config';
+            if (menuItems[2]) menuItems[2].textContent = currentLanguage === 'he' ? 'ייבא הגדרות' : 'Import Config';
+            if (menuItems[3]) menuItems[3].textContent = currentLanguage === 'he' ? 'הוסף קטגוריה' : 'Add Category';
+            if (menuItems[4]) menuItems[4].textContent = currentLanguage === 'he' ? 'החלף שפה' : 'Toggle Language';
+            if (menuItems[5]) menuItems[5].textContent = currentLanguage === 'he' ? 'החלף מצב כהה' : 'Toggle Dark Mode';
+            
+            // Update modal texts with null checks
+            const addCategoryModal = document.querySelector('#addCategoryModal h3');
+            if (addCategoryModal) addCategoryModal.textContent = t('addNewCategory');
+            
+            const editCategoryModal = document.querySelector('#editCategoryModal h3');
+            if (editCategoryModal) editCategoryModal.textContent = t('editCategory');
+            
+            const editServerModal = document.querySelector('#editServerModal h3');
+            if (editServerModal) editServerModal.textContent = t('editServerTitle');
+            
+            const editHeaderModal = document.querySelector('#editHeaderModal h3');
+            if (editHeaderModal) editHeaderModal.textContent = t('editHeaderTitle');
+            
+            // Update category type options
+            updateCategoryTypeOptions();
+            
+            // Update modal labels with null checks
+            const categoryBorderColorLabel = document.querySelector('.category-border-color-label');
+            if (categoryBorderColorLabel) categoryBorderColorLabel.textContent = t('categoryBorderColor');
+            
+            const editCategoryBorderColorLabel = document.querySelector('.edit-category-border-color-label');
+            if (editCategoryBorderColorLabel) editCategoryBorderColorLabel.textContent = t('categoryBorderColor');
+            
+            // Update placeholders with null checks
+            const categoryName = document.getElementById('categoryName');
+            if (categoryName) categoryName.placeholder = t('categoryNamePlaceholder');
+            
+            const editCategoryName = document.getElementById('editCategoryName');
+            if (editCategoryName) editCategoryName.placeholder = t('categoryNamePlaceholder');
+            
+            const editServerName = document.getElementById('editServerName');
+            if (editServerName) editServerName.placeholder = t('serverNamePlaceholder');
+            
+            const editServerUrl = document.getElementById('editServerUrl');
+            if (editServerUrl) editServerUrl.placeholder = t('serverUrlPlaceholder');
+            
+            const editHeaderTitle = document.getElementById('editHeaderTitle');
+            if (editHeaderTitle) editHeaderTitle.placeholder = t('headerTitlePlaceholder');
+            
+            const editHeaderSubtitle = document.getElementById('editHeaderSubtitle');
+            if (editHeaderSubtitle) editHeaderSubtitle.placeholder = t('headerSubtitlePlaceholder');
+            
+            // Update delete buttons
+            const deleteCategoryBtn = document.getElementById('deleteCategoryBtn');
+            const deleteServerBtn = document.getElementById('deleteServerBtn');
+            if (deleteCategoryBtn) deleteCategoryBtn.textContent = t('deleteCategoryBtn');
+            if (deleteServerBtn) deleteServerBtn.textContent = t('deleteServerBtn');
+            
+            // Update add category button
+            const addCategoryBtn = document.getElementById('addCategoryBtn');
+            if (addCategoryBtn) addCategoryBtn.textContent = t('addCategory');
+            
+            // Update other tooltips in rendered content
+            updateRenderedTooltips();
+            
+            const serverBorderColorLabel = document.querySelector('.server-border-color-label');
+            if (serverBorderColorLabel) serverBorderColorLabel.textContent = t('serverBorderColor');
+            
+            // Update modal form labels with null checks
+            const addCategoryLabels = document.querySelectorAll('#addCategoryModal label');
+            if (addCategoryLabels[0]) addCategoryLabels[0].textContent = t('categoryName');
+            if (addCategoryLabels[1]) addCategoryLabels[1].textContent = t('categoryType');
+            
+            const editCategoryLabels = document.querySelectorAll('#editCategoryModal label');
+            if (editCategoryLabels[0]) editCategoryLabels[0].textContent = t('categoryName');
+            if (editCategoryLabels[1]) editCategoryLabels[1].textContent = t('categoryType');
+            
+            const editServerLabels = document.querySelectorAll('#editServerModal label');
+            if (editServerLabels[0]) editServerLabels[0].textContent = t('serverName');
+            if (editServerLabels[1]) editServerLabels[1].textContent = t('serverUrl');
+            if (editServerLabels[2]) editServerLabels[2].textContent = t('status');
+            
+            const editHeaderLabels = document.querySelectorAll('#editHeaderModal label');
+            if (editHeaderLabels[0]) editHeaderLabels[0].textContent = t('headerTitleLabel');
+            if (editHeaderLabels[1]) editHeaderLabels[1].textContent = t('headerSubtitleLabel');
+            if (editHeaderLabels[2]) editHeaderLabels[2].textContent = t('headerTitleColorLabel');
+            if (editHeaderLabels[3]) editHeaderLabels[3].textContent = t('headerSubtitleColorLabel');
+            
+            // Update modal buttons
+            const cancelButtons = document.querySelectorAll('.btn-secondary');
+            cancelButtons.forEach(btn => {
+                if (btn.textContent.includes('Cancel') || btn.textContent.includes('ביטול')) {
+                    btn.textContent = t('cancel');
+                }
+            });
+            
+            const saveButtons = document.querySelectorAll('.btn-primary');
+            saveButtons.forEach(btn => {
+                if (btn.textContent.includes('Save') || btn.textContent.includes('שמור')) {
+                    btn.textContent = t('saveChanges');
+                }
+            });
+        }
+
+        // Edit header title
+        function editHeaderTitle() {
+            const h1 = document.querySelector('.header h1');
+            const input = document.createElement('input');
+            input.className = 'header-edit-input';
+            input.value = headerTitle;
+            input.onblur = input.onkeydown = function(e) {
+                if (e.type === 'blur' || e.key === 'Enter') {
+                    headerTitle = input.value || headerTitle;
+                    saveData();
+                    updateTexts();
+                }
+            };
+            h1.innerHTML = '';
+            h1.appendChild(input);
+            input.focus();
+            input.select();
+        }
+
+        // Show edit header modal
+        function showEditHeaderModal() {
+            document.getElementById('editHeaderTitle').value = headerTitle;
+            document.getElementById('editHeaderSubtitle').value = headerSubtitle;
+            document.getElementById('headerTitleColor').value = localStorage.getItem('headerTitleColor') || '#3b82f6';
+            document.getElementById('headerSubtitleColor').value = localStorage.getItem('headerSubtitleColor') || '#6b7280';
+            
+            // Update color picker selections
+            updateColorPickerSelection('headerTitleColor');
+            updateColorPickerSelection('headerSubtitleColor');
+            
+            document.getElementById('editHeaderModal').classList.remove('hidden');
+        }
+
+        // Hide edit header modal
+        function hideEditHeaderModal(event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            document.getElementById('editHeaderModal').classList.add('hidden');
+        }
+
+        // Save header edit
+        function saveHeaderEdit() {
+            const newTitle = document.getElementById('editHeaderTitle').value.trim();
+            const newSubtitle = document.getElementById('editHeaderSubtitle').value.trim();
+            const titleColor = document.getElementById('headerTitleColor').value;
+            const subtitleColor = document.getElementById('headerSubtitleColor').value;
+            
+            // Validate input
+            if (newTitle && !validateString(newTitle, 100)) {
+                alert(t('titleTooLong'));
+                return;
+            }
+            
+            if (newSubtitle && !validateString(newSubtitle, 200)) {
+                alert(t('subtitleTooLong'));
+                return;
+            }
+            
+            if (newTitle) {
+                headerTitle = newTitle;
+            }
+            if (newSubtitle) {
+                headerSubtitle = newSubtitle;
+            }
+            
+            // Save colors to localStorage
+            localStorage.setItem('headerTitleColor', titleColor);
+            localStorage.setItem('headerSubtitleColor', subtitleColor);
+            
+            // Apply colors to header
+            document.querySelector('.header h1').style.color = titleColor;
+            document.querySelector('.header p').style.color = subtitleColor;
+            
+                    saveData();
+                    updateTexts();
+                    showChangesNotification();
+            hideEditHeaderModal();
+        }
+
+        // Select header title color
+        function selectHeaderTitleColor(color) {
+            document.getElementById('headerTitleColor').value = color;
+            updateColorPickerSelection('headerTitleColor');
+        }
+
+        // Select header subtitle color
+        function selectHeaderSubtitleColor(color) {
+            document.getElementById('headerSubtitleColor').value = color;
+            updateColorPickerSelection('headerSubtitleColor');
+        }
+
+        // Update color picker selection (helper function)
+        function updateColorPickerSelection(inputId) {
+            const color = document.getElementById(inputId).value;
+            const modal = document.getElementById(inputId).closest('.modal');
+            if (modal) {
+                modal.querySelectorAll('.color-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                const selectedOption = modal.querySelector(`.color-option[data-color="${color}"]`);
+                if (selectedOption) {
+                    selectedOption.classList.add('selected');
+                }
+            }
+        }
+
+        // Update tooltips in rendered content
+        function updateRenderedTooltips() {
+            // Update category icon tooltips
+            document.querySelectorAll('.category-icon').forEach(icon => {
+                icon.title = t('editCategory');
+            });
+            
+            // Update server name tooltips
+            document.querySelectorAll('.server-name').forEach(name => {
+                name.title = t('clickToEdit');
+            });
+            
+            // Update status dot tooltips
+            document.querySelectorAll('.status-dot').forEach(dot => {
+                dot.title = t('clickToCheckStatus');
+            });
+        }
+
+        // Update category type options
+        function updateCategoryTypeOptions() {
+            const categoryTypes = ['media', 'network', 'storage', 'services', 'development', 'monitoring', 'security', 'communication', 'productivity', 'gaming', 'database', 'automation'];
+            
+            // Update add category modal
+            const addCategorySelect = document.getElementById('categoryType');
+            if (addCategorySelect) {
+                addCategorySelect.innerHTML = '';
+                categoryTypes.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type;
+                    option.textContent = `${getCategoryIcon(type)} ${t(type)}`;
+                    addCategorySelect.appendChild(option);
+                });
+            }
+            
+            // Update edit category modal
+            const editCategorySelect = document.getElementById('editCategoryType');
+            if (editCategorySelect) {
+                editCategorySelect.innerHTML = '';
+                categoryTypes.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type;
+                    option.textContent = `${getCategoryIcon(type)} ${t(type)}`;
+                    editCategorySelect.appendChild(option);
+                });
+            }
+        }
+
+        // Color selection functions
+        function selectCategoryColor(color) {
+            document.getElementById('categoryBorderColor').value = color;
+            document.querySelectorAll('#addCategoryModal .color-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            document.querySelector(`#addCategoryModal .color-option[data-color="${color}"]`).classList.add('selected');
+        }
+
+        function selectServerColor(color) {
+            document.getElementById('editServerBorderColor').value = color;
+            document.querySelectorAll('#editServerModal .color-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            const selectedOption = document.querySelector(`#editServerModal .color-option[data-color="${color}"]`);
+            if (selectedOption) {
+                selectedOption.classList.add('selected');
+            }
+        }
+
+        // Filter items
+        function filterItems() {
+            const query = document.getElementById('filterInput').value.toLowerCase();
+            const clearBtn = document.getElementById('searchClearBtn');
+            const mobileClearBtn = document.getElementById('mobileSearchClearBtn');
+            
+            // Show/hide clear buttons based on input content
+            if (query) {
+                clearBtn.classList.add('visible');
+                mobileClearBtn.classList.add('visible');
+            } else {
+                clearBtn.classList.remove('visible');
+                mobileClearBtn.classList.remove('visible');
+            }
+            
+            if (!query) {
+                filteredCategories = categories;
+            } else {
+                filteredCategories = categories.filter(category => {
+                    const categoryMatch = category.name.toLowerCase().includes(query);
+                    const serverMatch = category.servers.some(server => 
+                        server.name.toLowerCase().includes(query) || 
+                        server.url.toLowerCase().includes(query)
+                    );
+                    return categoryMatch || serverMatch;
+                }).map(category => ({
+                    ...category,
+                    servers: category.servers.filter(server => 
+                        server.name.toLowerCase().includes(query) || 
+                        server.url.toLowerCase().includes(query) ||
+                        category.name.toLowerCase().includes(query)
+                    )
+                }));
+            }
+            renderCategories();
+        }
+
+        // Clear search
+        function clearSearch() {
+            document.getElementById('filterInput').value = '';
+            document.getElementById('searchClearBtn').classList.remove('visible');
+            filterItems();
+        }
+
+        // Clear mobile search
+        function clearMobileSearch() {
+            document.getElementById('mobileFilterInput').value = '';
+            document.getElementById('mobileSearchClearBtn').classList.remove('visible');
+            document.getElementById('filterInput').value = '';
+            document.getElementById('searchClearBtn').classList.remove('visible');
+            filterItems();
+        }
+
+        // Render all categories
+        function renderCategories() {
+            const grid = document.getElementById('categoriesGrid');
+            const categoriesToRender = filteredCategories.length ? filteredCategories : categories;
+            
+            // Clear existing content
+            grid.innerHTML = '';
+            
+            categoriesToRender.forEach(category => {
+                const categoryCard = document.createElement('div');
+                categoryCard.className = 'category-card';
+                categoryCard.id = `category-${category.id}`;
+                categoryCard.style.borderColor = category.borderColor || '#94a3b8';
+                
+                // Create category header
+                const categoryHeader = document.createElement('div');
+                categoryHeader.className = 'category-header';
+                
+                const categoryTitle = document.createElement('div');
+                categoryTitle.className = 'category-title';
+                
+                const categoryIcon = document.createElement('div');
+                categoryIcon.className = `category-icon ${category.type}`;
+                categoryIcon.textContent = getCategoryIcon(category.type);
+                categoryIcon.onclick = () => showEditCategoryModal(category.id);
+                categoryIcon.style.cursor = 'pointer';
+                categoryIcon.title = t('editCategory');
+                
+                const categoryName = document.createElement('span');
+                categoryName.className = 'category-name';
+                categoryName.id = `categoryName-${category.id}`;
+                categoryName.textContent = category.name; // Use textContent for security
+                categoryName.onclick = () => editCategoryName(category.id);
+                
+                categoryTitle.appendChild(categoryIcon);
+                categoryTitle.appendChild(categoryName);
+                
+                // Create category controls
+                const categoryControls = document.createElement('div');
+                categoryControls.className = 'category-controls';
+                
+                const editBtn = document.createElement('button');
+                editBtn.className = 'btn btn-ghost btn-small';
+                editBtn.textContent = '✏️';
+                editBtn.onclick = () => showEditCategoryModal(category.id);
+                editBtn.title = t('editCategory');
+                
+                const dragHandle = document.createElement('button');
+                dragHandle.className = 'btn btn-ghost btn-small drag-handle';
+                dragHandle.textContent = '⋮⋮';
+                dragHandle.draggable = true;
+                dragHandle.ondragstart = (e) => handleCategoryDragStart(e, category.id);
+                dragHandle.ondragend = handleCategoryDragEnd;
+                dragHandle.title = t('dragToReorderCategory');
+                dragHandle.onclick = (e) => e.stopPropagation();
+                
+                categoryControls.appendChild(editBtn);
+                categoryControls.appendChild(dragHandle);
+                
+                categoryHeader.appendChild(categoryTitle);
+                categoryHeader.appendChild(categoryControls);
+                
+                // Create server list
+                const serverList = document.createElement('div');
+                serverList.className = 'server-list';
+                serverList.ondragover = (e) => handleServerDragOver(e, category.id);
+                serverList.ondrop = (e) => handleServerDrop(e, category.id);
+                serverList.style.minHeight = '50px';
+                
+                // Add servers
+                category.servers.forEach(server => {
+                    const serverItem = document.createElement('div');
+                    serverItem.className = 'server-item';
+                    serverItem.id = `server-${server.id}`;
+                    serverItem.onclick = () => handleMobileServerClick(server.id, server.url, category.id);
+                    serverItem.style.position = 'relative';
+                    serverItem.style.borderColor = server.borderColor || '#94a3b8';
+                    
+                    // Status dot
+                    const statusDot = document.createElement('div');
+                    statusDot.className = `status-dot status-${server.status}`;
+                    statusDot.onclick = (e) => {
+                        e.stopPropagation();
+                        checkIndividualServerStatus(category.id, server.id);
+                    };
+                    statusDot.style.cursor = 'pointer';
+                    statusDot.title = t('clickToCheckStatus');
+                    
+                    // Server info
+                    const serverInfo = document.createElement('div');
+                    serverInfo.className = 'server-info';
+                    serverInfo.id = `serverInfo-${server.id}`;
+                    
+                    const serverName = document.createElement('div');
+                    serverName.className = 'server-name';
+                    serverName.textContent = server.name; // Use textContent for security
+                    serverName.title = t('clickToEdit');
+                    
+                    const serverUrl = document.createElement('div');
+                    serverUrl.className = 'server-url';
+                    serverUrl.textContent = server.url; // Use textContent for security
+                    
+                    serverInfo.appendChild(serverName);
+                    serverInfo.appendChild(serverUrl);
+                    
+                    // Server controls
+                    const serverControls = document.createElement('div');
+                    serverControls.className = 'server-controls';
+                    
+                    const serverEditBtn = document.createElement('button');
+                    serverEditBtn.className = 'btn btn-ghost btn-small';
+                    serverEditBtn.textContent = '✏️';
+                    serverEditBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        showEditServerModal(category.id, server.id);
+                    };
+                    serverEditBtn.title = t('editServer');
+                    
+                    const serverDragHandle = document.createElement('button');
+                    serverDragHandle.className = 'btn btn-ghost btn-small drag-handle';
+                    serverDragHandle.textContent = '⋮⋮';
+                    serverDragHandle.draggable = true;
+                    serverDragHandle.ondragstart = (e) => handleServerDragStart(e, server.id, category.id);
+                    serverDragHandle.ondragend = handleServerDragEnd;
+                    serverDragHandle.title = t('dragToReorderServer');
+                    serverDragHandle.onclick = (e) => e.stopPropagation();
+                    
+                    serverControls.appendChild(serverEditBtn);
+                    serverControls.appendChild(serverDragHandle);
+                    
+                    // URL popup
+                    const urlPopup = document.createElement('div');
+                    urlPopup.className = 'url-popup';
+                    
+                    const urlPopupContent = document.createElement('div');
+                    urlPopupContent.className = 'url-popup-content';
+                    
+                    const urlDisplay = document.createElement('div');
+                    urlDisplay.className = 'url-display';
+                    urlDisplay.textContent = server.url; // Use textContent for security
+                    
+                    const urlActions = document.createElement('div');
+                    urlActions.className = 'url-actions';
+                    
+                    const copyBtn = document.createElement('a');
+                    copyBtn.href = '#';
+                    copyBtn.className = 'url-copy-btn';
+                    copyBtn.textContent = '📋 Copy';
+                    copyBtn.onclick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        copyUrlToClipboard(server.url, copyBtn);
+                    };
+                    copyBtn.title = 'Copy URL';
+                    
+                    const openBtn = document.createElement('a');
+                    openBtn.href = server.url;
+                    openBtn.className = 'url-open-btn';
+                    openBtn.target = '_blank';
+                    openBtn.textContent = '🔗 Open';
+                    openBtn.title = 'Open URL';
+                    
+                    urlActions.appendChild(copyBtn);
+                    urlActions.appendChild(openBtn);
+                    urlPopupContent.appendChild(urlDisplay);
+                    urlPopupContent.appendChild(urlActions);
+                    urlPopup.appendChild(urlPopupContent);
+                    
+                    serverItem.appendChild(statusDot);
+                    serverItem.appendChild(serverInfo);
+                    serverItem.appendChild(serverControls);
+                    serverItem.appendChild(urlPopup);
+                    
+                    serverList.appendChild(serverItem);
+                });
+                
+                // Add server button
+                const addServerBtn = document.createElement('button');
+                addServerBtn.className = 'btn btn-secondary add-server-btn';
+                addServerBtn.textContent = t('addServer');
+                addServerBtn.onclick = () => addServer(category.id);
+                addServerBtn.style.width = '100%';
+                addServerBtn.style.marginTop = '0.5rem';
+                
+                serverList.appendChild(addServerBtn);
+                
+                categoryCard.appendChild(categoryHeader);
+                categoryCard.appendChild(serverList);
+                grid.appendChild(categoryCard);
+            });
+            
+            // Add the "Add Category" button
+            const addCategoryCard = document.createElement('div');
+            addCategoryCard.className = 'category-card add-category-btn';
+            addCategoryCard.onclick = showAddCategoryModal;
+            addCategoryCard.style.border = '2px dashed var(--card-border)';
+            addCategoryCard.style.background = 'transparent';
+            addCategoryCard.style.display = 'flex';
+            addCategoryCard.style.alignItems = 'center';
+            addCategoryCard.style.justifyContent = 'center';
+            addCategoryCard.style.cursor = 'pointer';
+            addCategoryCard.style.minHeight = '200px';
+            
+            const addCategoryContent = document.createElement('div');
+            addCategoryContent.style.textAlign = 'center';
+            addCategoryContent.style.color = 'var(--text-muted)';
+            
+            const addCategoryText = document.createElement('div');
+            addCategoryText.textContent = t('addCategory');
+            
+            addCategoryContent.appendChild(addCategoryText);
+            addCategoryCard.appendChild(addCategoryContent);
+            grid.appendChild(addCategoryCard);
+        }
+
+        // Global variables for edit modals
+        let currentEditCategoryId = null;
+        let currentEditServerId = null;
+
+        // Show edit category modal
+        function showEditCategoryModal(categoryId) {
+            const category = categories.find(c => c.id === categoryId);
+            
+            currentEditCategoryId = categoryId;
+            
+            document.getElementById('editCategoryName').value = category.name;
+            document.getElementById('editCategoryType').value = category.type;
+            document.getElementById('editCategoryBorderColor').value = category.borderColor || '#3b82f6';
+            selectEditCategoryColor(category.borderColor || '#3b82f6');
+            document.getElementById('editCategoryModal').classList.remove('hidden');
+        }
+
+        // Hide edit category modal
+        function hideEditCategoryModal(event) {
+            if (!event || event.target.classList.contains('modal-overlay')) {
+                document.getElementById('editCategoryModal').classList.add('hidden');
+                currentEditCategoryId = null;
+            }
+        }
+
+        // Save edit category
+        function saveEditCategory() {
+            const name = document.getElementById('editCategoryName').value;
+            const type = document.getElementById('editCategoryType').value;
+            const borderColor = document.getElementById('editCategoryBorderColor').value;
+            
+            if (name && currentEditCategoryId) {
+                const category = categories.find(c => c.id === currentEditCategoryId);
+                
+                category.name = name;
+                category.type = type;
+                category.borderColor = borderColor;
+                
+                saveData();
+                renderCategories();
+                showChangesNotification();
+                hideEditCategoryModal();
+            }
+        }
+
+        // Color selection for edit category
+        function selectEditCategoryColor(color) {
+            document.getElementById('editCategoryBorderColor').value = color;
+            document.querySelectorAll('#editCategoryModal .color-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            document.querySelector(`#editCategoryModal .color-option[data-color="${color}"]`).classList.add('selected');
+        }
+
+        // Edit category name (kept for backward compatibility)
+        function editCategoryName(categoryId) {
+            showEditCategoryModal(categoryId);
+        }
+
+        // Show edit server modal
+        function showEditServerModal(categoryId, serverId) {
+            const category = categories.find(c => c.id === categoryId);
+            const server = serverId ? category.servers.find(s => s.id === serverId) : null;
+            
+            currentEditCategoryId = categoryId;
+            currentEditServerId = serverId;
+            
+            // Clear mobile edit mode
+            mobileEditMode = false;
+            lastTouchedServer = null;
+            document.querySelectorAll('.server-item').forEach(item => {
+                item.classList.remove('mobile-edit-mode');
+            });
+            
+            // Show the modal first
+            document.getElementById('editServerModal').classList.remove('hidden');
+            
+            // Update modal title based on whether it's a new server or existing
+            const modalTitle = document.querySelector('#editServerModal h3');
+            if (server) {
+            const isNewServer = server.name.includes('New Server');
+            modalTitle.textContent = isNewServer ? t('addNewServer') : t('editServerTitle');
+            
+            document.getElementById('editServerName').value = server.name;
+            document.getElementById('editServerUrl').value = server.url;
+            document.getElementById('editServerBorderColor').value = server.borderColor || '#94a3b8';
+            selectServerColor(server.borderColor || '#94a3b8');
+            } else {
+                // New server
+                modalTitle.textContent = t('addNewServer');
+                document.getElementById('editServerName').value = '';
+                document.getElementById('editServerUrl').value = '';
+                document.getElementById('editServerBorderColor').value = '#94a3b8';
+                selectServerColor('#94a3b8');
+            }
+        }
+
+        // Hide edit server modal
+        function hideEditServerModal(event) {
+            if (!event || event.target.classList.contains('modal-overlay')) {
+                document.getElementById('editServerModal').classList.add('hidden');
+                currentEditCategoryId = null;
+                currentEditServerId = null;
+            }
+        }
+
+        // Save server edit
+        function saveServerEdit() {
+            const name = document.getElementById('editServerName').value.trim();
+            const url = document.getElementById('editServerUrl').value.trim();
+            const borderColor = document.getElementById('editServerBorderColor').value;
+            
+            // Validate input
+            if (!validateString(name, 50)) {
+                alert(t('serverNameRequired'));
+                return;
+            }
+            
+            if (!isValidUrl(url)) {
+                alert(t('invalidUrl'));
+                return;
+            }
+            
+            if (name && url && currentEditCategoryId) {
+                const category = categories.find(c => c.id === currentEditCategoryId);
+                
+                if (currentEditServerId) {
+                    // Editing existing server
+                    console.log('Editing existing server:', name);
+                    const server = category.servers.find(s => s.id === currentEditServerId);
+                if (server) {
+                    server.name = name;
+                    server.url = url;
+                    server.borderColor = borderColor;
+                        // Keep existing status - it will be updated by status check
+                    } else {
+                        alert(t('serverNotFound'));
+                        return;
+                    }
+                } else {
+                    // Adding new server
+                    console.log('Adding new server:', name);
+                    const newServer = {
+                        id: Date.now().toString(),
+                        name: name,
+                        url: url,
+                        status: 'offline', // Default status, will be updated by status check
+                        borderColor: borderColor
+                    };
+                    category.servers.push(newServer);
+                }
+                    
+                    saveData();
+                    renderCategories();
+                    showChangesNotification();
+                    hideEditServerModal();
+                } else {
+                alert(t('fillRequiredFields'));
+            }
+        }
+
+
+
+        // Add server
+        function addServer(categoryId) {
+            showEditServerModal(categoryId, null);
+        }
+
+        // Delete server
+        function deleteServer(categoryId, serverId) {
+            if (confirm(t('deleteConfirm'))) {
+                const category = categories.find(c => c.id === categoryId);
+                category.servers = category.servers.filter(s => s.id !== serverId);
+                saveData();
+                renderCategories();
+                showChangesNotification();
+            }
+        }
+
+        // Delete category
+        function deleteCategory(categoryId) {
+            if (confirm(t('deleteCategoryConfirm'))) {
+                categories = categories.filter(c => c.id !== categoryId);
+                saveData();
+                renderCategories();
+                showChangesNotification();
+            }
+        }
+
+        // Delete category from modal
+        function deleteCategoryFromModal() {
+            if (currentEditCategoryId && confirm(t('deleteCategoryConfirm'))) {
+                categories = categories.filter(c => c.id !== currentEditCategoryId);
+                saveData();
+                renderCategories();
+                showChangesNotification();
+                hideEditCategoryModal();
+            }
+        }
+
+        // Delete server from modal
+        function deleteServerFromModal() {
+            if (currentEditCategoryId && currentEditServerId && confirm(t('deleteConfirm'))) {
+                const category = categories.find(c => c.id === currentEditCategoryId);
+                if (category) {
+                    category.servers = category.servers.filter(s => s.id !== currentEditServerId);
+                    saveData();
+                    renderCategories();
+                    showChangesNotification();
+                    hideEditServerModal();
+                }
+            }
+        }
+
+        // Mobile state tracking
+        let mobileEditMode = false;
+        let lastTouchedServer = null;
+
+        // Open server
+        function openServer(url) {
+            if (isValidUrl(url)) {
+            window.open(url, '_blank');
+            } else {
+                console.error('Invalid URL:', url);
+                alert(t('invalidUrlFormat'));
+            }
+        }
+
+        // Handle mobile server item clicks
+        function handleMobileServerClick(serverId, url, categoryId) {
+            if (window.innerWidth <= 768) {
+                // Mobile behavior
+                if (mobileEditMode && lastTouchedServer === serverId) {
+                    // Second click - open the website
+                    openServer(url);
+                    mobileEditMode = false;
+                    lastTouchedServer = null;
+                    
+                    // Remove edit mode styling
+                    document.querySelectorAll('.server-item').forEach(item => {
+                        item.classList.remove('mobile-edit-mode');
+                    });
+                } else {
+                    // First click - show edit mode
+                    mobileEditMode = true;
+                    lastTouchedServer = serverId;
+                    
+                    // Add edit mode styling to this server item
+                    document.querySelectorAll('.server-item').forEach(item => {
+                        item.classList.remove('mobile-edit-mode');
+                    });
+                    const currentServerItem = document.getElementById(`server-${serverId}`);
+                    if (currentServerItem) {
+                        currentServerItem.classList.add('mobile-edit-mode');
+                    }
+                    
+                    // Hide edit mode after 3 seconds if not used
+                    setTimeout(() => {
+                        if (mobileEditMode && lastTouchedServer === serverId) {
+                            mobileEditMode = false;
+                            lastTouchedServer = null;
+                            document.querySelectorAll('.server-item').forEach(item => {
+                                item.classList.remove('mobile-edit-mode');
+                            });
+                        }
+                    }, 3000);
+                }
+            } else {
+                // Desktop behavior - open website directly
+                openServer(url);
+            }
+        }
+
+        // Show add category modal
+        function showAddCategoryModal() {
+            document.getElementById('addCategoryModal').classList.remove('hidden');
+        }
+
+        // Hide add category modal
+        function hideAddCategoryModal(event) {
+            if (!event || event.target.classList.contains('modal-overlay')) {
+                document.getElementById('addCategoryModal').classList.add('hidden');
+                document.getElementById('categoryName').value = '';
+            }
+        }
+
+        // Add category
+        function addCategory() {
+            const name = document.getElementById('categoryName').value.trim();
+            const type = document.getElementById('categoryType').value;
+            const borderColor = document.getElementById('categoryBorderColor').value;
+            
+            // Validate input
+            if (!validateString(name, 50)) {
+                alert(t('categoryNameRequired'));
+                return;
+            }
+            
+            if (name) {
+                console.log('Adding new category:', name);
+                const newCategory = {
+                    id: Date.now().toString(),
+                    name,
+                    type,
+                    borderColor,
+                    servers: []
+                };
+                categories.push(newCategory);
+                saveData();
+                renderCategories();
+                showChangesNotification();
+                hideAddCategoryModal();
+            }
+        }
+
+        // Export configuration
+        function exportConfig() {
+            const exportData = {
+                categories: categories,
+                headerTitle: headerTitle,
+                headerSubtitle: headerSubtitle,
+                headerTitleColor: localStorage.getItem('headerTitleColor') || '#3b82f6',
+                headerSubtitleColor: localStorage.getItem('headerSubtitleColor') || '#6b7280',
+                currentLanguage: currentLanguage
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            
+            // Get current filename and replace .html with .json
+            const currentFilename = window.location.pathname.split('/').pop() || 'dashboard.html';
+            const jsonFilename = currentFilename.replace('.html', '.json');
+            link.download = jsonFilename;
+            
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Import configuration
+        function importConfig(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const imported = JSON.parse(e.target.result);
+                        
+                        // Validate imported data
+                        if (!validateImportedData(imported)) {
+                            alert(t('invalidConfigFormat'));
+                            return;
+                        }
+                        
+                        if (confirm(t('importConfirm'))) {
+                            // Handle both old format (just categories) and new format (with header data)
+                            if (imported.categories) {
+                                // New format with header data
+                                categories = imported.categories;
+                                if (imported.headerTitle) {
+                                    headerTitle = imported.headerTitle;
+                                }
+                                if (imported.headerSubtitle) {
+                                    headerSubtitle = imported.headerSubtitle;
+                                }
+                                if (imported.headerTitleColor) {
+                                    localStorage.setItem('headerTitleColor', imported.headerTitleColor);
+                                }
+                                if (imported.headerSubtitleColor) {
+                                    localStorage.setItem('headerSubtitleColor', imported.headerSubtitleColor);
+                                }
+                                if (imported.currentLanguage) {
+                                    setLanguage(imported.currentLanguage);
+                                }
+                            } else {
+                                // Old format - just categories array
+                            categories = imported;
+                            }
+                            saveData();
+                            
+                            // Update initial data for comparison after import
+                            initialData = {
+                                categories: categories,
+                                headerTitle: headerTitle,
+                                headerSubtitle: headerSubtitle
+                            };
+                            
+                            updateTexts();
+                            renderCategories();
+                            
+                            // Automatically refresh the page after successful import
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1000);
+                        }
+                    } catch (error) {
+                        alert(t('invalidConfig'));
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+                // Check server status
+        async function checkServerStatus(url, onStatusUpdate = null) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                
+                try {
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        mode: 'no-cors',
+                        signal: controller.signal,
+                        credentials: 'omit'
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    if (onStatusUpdate) onStatusUpdate('online');
+                    return 'online';
+                } catch (fetchError) {
+                    clearTimeout(timeoutId);
+                    
+                    // Get the actual error information that JavaScript can access
+                    const errorName = fetchError.name || '';
+                    const errorMessage = fetchError.message || '';
+                    
+                    console.log(`Fetch error for ${url}:`);
+                    console.log(`  Error name: ${errorName}`);
+                    console.log(`  Error message: ${errorMessage}`);
+                    
+                    // Determine server status based on actual JavaScript error types
+                    if (errorName === 'TypeError' && errorMessage.includes('Failed to fetch')) {
+                        // Server is reachable but request failed (certificate issues, CORS, etc.)
+                        console.log(`Server considered ONLINE - TypeError with Failed to fetch (server reachable)`);
+                        if (onStatusUpdate) onStatusUpdate('online');
+                        return 'online';
+                    }
+                    
+                    if (errorName === 'AbortError') {
+                        // Request was aborted (timeout) - server not responding
+                        console.log(`Server considered OFFLINE - AbortError (timeout)`);
+                        if (onStatusUpdate) onStatusUpdate('offline');
+                        return 'offline';
+                    }
+                    
+                    // For other errors, check if they indicate server is reachable
+                    if (errorMessage.includes('Failed to fetch') || 
+                        errorMessage.includes('NetworkError') ||
+                        errorMessage.includes('TypeError')) {
+                        console.log(`Server considered ONLINE - Network error (server reachable)`);
+                        if (onStatusUpdate) onStatusUpdate('online');
+                        return 'online';
+                    }
+                    
+                    // Default to offline for unknown errors
+                    console.log(`Unknown error, defaulting to OFFLINE: ${errorMessage}`);
+                    if (onStatusUpdate) onStatusUpdate('offline');
+                    return 'offline';
+                }
+            } catch (error) {
+                console.error('Status check error for', url, ':', error);
+                return 'offline';
+            }
+        }
+
+        // Get favicon for a URL
+        function getFaviconUrl(url) {
+            try {
+                const urlObj = new URL(url);
+                return `${urlObj.protocol}//${urlObj.hostname}/favicon.ico`;
+            } catch (error) {
+                return null;
+            }
+        }
+
+
+
+
+
+
+
+        // Check all server statuses
+        async function checkAllServerStatuses() {
+            const checkButton = document.querySelector('.header-icon-btn[onclick*="checkAllServerStatuses"]');
+            const originalIcon = checkButton.innerHTML;
+            checkButton.innerHTML = '⏳';
+            checkButton.style.pointerEvents = 'none';
+            
+            try {
+                for (const category of categories) {
+                    for (const server of category.servers) {
+                        console.log(`Checking status for: ${server.name} (${server.url})`);
+                        
+                        // Update status indicator to "checking" state
+                        updateServerStatusIndicator(server.id, 'checking');
+                        
+                        const status = await checkServerStatus(server.url, (newStatus) => {
+                            // Real-time status update callback
+                            updateServerStatusIndicator(server.id, newStatus);
+                        });
+                        console.log(`Status for ${server.name}: ${status}`);
+                        server.status = status;
+                    }
+                }
+                // Don't save data after status checking - status is only for display
+                // Don't re-render all categories, just update the data
+            } catch (error) {
+                console.error('Status check failed:', error);
+            } finally {
+                checkButton.innerHTML = originalIcon;
+                checkButton.style.pointerEvents = 'auto';
+            }
+        }
+
+        // Update server status indicator in real-time
+        function updateServerStatusIndicator(serverId, status) {
+            const statusDot = document.querySelector(`#server-${serverId} .status-dot`);
+            if (statusDot) {
+                // Remove all status classes
+                statusDot.classList.remove('status-online', 'status-offline', 'status-warning', 'status-checking');
+                
+                // Add the appropriate status class
+                statusDot.classList.add(`status-${status}`);
+                
+                // Add a brief animation for status changes
+                statusDot.style.animation = 'none';
+                setTimeout(() => {
+                    statusDot.style.animation = 'pulse 2s infinite';
+                }, 10);
+            }
+        }
+
+        // Check individual server status with real-time updates
+        async function checkIndividualServerStatus(categoryId, serverId) {
+            const category = categories.find(c => c.id === categoryId);
+            const server = category.servers.find(s => s.id === serverId);
+            
+            if (!server) return;
+            
+            // Update to checking state
+            updateServerStatusIndicator(serverId, 'checking');
+            
+            try {
+                const status = await checkServerStatus(server.url, (newStatus) => {
+                    // Real-time status update callback
+                    updateServerStatusIndicator(serverId, newStatus);
+                });
+                
+                server.status = status;
+                // Don't save data after individual status checking - status is only for display
+            } catch (error) {
+                console.error(`Error checking status for ${server.name}:`, error);
+                updateServerStatusIndicator(serverId, 'offline');
+            }
+        }
+
+        // Drag and Drop functionality
+        let draggedElement = null;
+        let draggedType = null; // 'category' or 'server'
+        let draggedCategoryId = null;
+        let draggedServerId = null;
+
+        // Initialize drag and drop
+        function initDragAndDrop() {
+            // Category drag and drop
+            const categoriesGrid = document.getElementById('categoriesGrid');
+            if (categoriesGrid) {
+                categoriesGrid.addEventListener('dragover', handleDragOver);
+                categoriesGrid.addEventListener('drop', handleCategoryDrop);
+            }
+        }
+
+        // Handle drag over for categories
+        function handleDragOver(e) {
+            e.preventDefault();
+            if (draggedType === 'category') {
+                console.log('Category drag over event');
+                const categoryCards = document.querySelectorAll('.category-card:not(.dragging)');
+                categoryCards.forEach(card => {
+                    const rect = card.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    
+                    if (e.clientY < midY) {
+                        card.classList.add('drag-over');
+                    } else {
+                        card.classList.remove('drag-over');
+                    }
+                });
+            }
+        }
+
+        // Handle category drop
+        function handleCategoryDrop(e) {
+            console.log('Category drop event triggered');
+            e.preventDefault();
+            if (draggedType !== 'category') {
+                console.log('Not a category drag, ignoring');
+                return;
+            }
+            
+            console.log(`Dropping category ${draggedCategoryId}`);
+            
+            const categoryCards = document.querySelectorAll('.category-card');
+            const dropIndex = Array.from(categoryCards).findIndex(card => {
+                const rect = card.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                return e.clientY < midY;
+            });
+            
+            console.log(`Drop index calculated: ${dropIndex}`);
+            
+            if (dropIndex !== -1) {
+                const draggedIndex = categories.findIndex(cat => cat.id === draggedCategoryId);
+                console.log(`Dragged index: ${draggedIndex}`);
+                
+                if (draggedIndex !== -1) {
+                    const [draggedCategory] = categories.splice(draggedIndex, 1);
+                    categories.splice(dropIndex, 0, draggedCategory);
+                    console.log(`Category "${draggedCategory.name}" moved from position ${draggedIndex} to ${dropIndex}`);
+                    
+                    saveData();
+                    renderCategories();
+                    showChangesNotification();
+                }
+            }
+            
+            cleanupDragState();
+        }
+
+        // Handle server drop
+        function handleServerDrop(e, targetCategoryId) {
+            console.log('Server drop event triggered');
+            e.preventDefault();
+            if (draggedType !== 'server') {
+                console.log('Not a server drag, ignoring');
+                return;
+            }
+            
+            console.log(`Dropping server ${draggedServerId} to category ${targetCategoryId}`);
+            
+            const targetCategory = categories.find(cat => cat.id === targetCategoryId);
+            if (!targetCategory) return;
+            
+            // Find source category and server
+            const sourceCategory = categories.find(cat => 
+                cat.servers.some(server => server.id === draggedServerId)
+            );
+            const sourceServer = sourceCategory?.servers.find(server => server.id === draggedServerId);
+            
+            if (!sourceCategory || !sourceServer) {
+                cleanupDragState();
+                return;
+            }
+            
+            // Get all server items in the target category (excluding the dragged one)
+            const serverItems = document.querySelectorAll(`#category-${targetCategoryId} .server-item:not(.dragging)`);
+            
+            // Calculate drop position
+            let dropIndex = -1;
+            if (serverItems.length > 0) {
+                dropIndex = Array.from(serverItems).findIndex(item => {
+                    const rect = item.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    return e.clientY < midY;
+                });
+                
+                // If not found, drop at the end
+                if (dropIndex === -1) {
+                    dropIndex = serverItems.length;
+                }
+            } else {
+                // Empty category - drop at position 0
+                dropIndex = 0;
+            }
+            
+            // Remove from source category
+            const sourceServerIndex = sourceCategory.servers.findIndex(server => server.id === draggedServerId);
+            sourceCategory.servers.splice(sourceServerIndex, 1);
+            
+            // Add to target category at the correct position
+            if (dropIndex === -1 || dropIndex >= targetCategory.servers.length) {
+                targetCategory.servers.push(sourceServer);
+            } else {
+                targetCategory.servers.splice(dropIndex, 0, sourceServer);
+            }
+            
+            console.log(`Server "${sourceServer.name}" moved from category "${sourceCategory.name}" to "${targetCategory.name}" at position ${dropIndex}`);
+            console.log('Updated categories:', JSON.stringify(categories, null, 2));
+            
+            saveData();
+            renderCategories();
+            showChangesNotification();
+            
+            cleanupDragState();
+        }
+
+        // Clean up drag state
+        function cleanupDragState() {
+            console.log('Cleaning up drag state');
+            if (draggedElement) {
+                draggedElement.classList.remove('dragging');
+                draggedElement = null;
+            }
+            
+            // Clear all drag-over states
+            document.querySelectorAll('.category-card.drag-over').forEach(card => {
+                card.classList.remove('drag-over');
+            });
+            
+            document.querySelectorAll('.server-item.drag-over').forEach(item => {
+                item.classList.remove('drag-over');
+            });
+            
+            document.querySelectorAll('.server-list.drag-over').forEach(list => {
+                list.classList.remove('drag-over');
+            });
+            
+            draggedType = null;
+            draggedCategoryId = null;
+            draggedServerId = null;
+            console.log('Drag state cleaned up');
+        }
+
+        // Category drag event handlers
+        function handleCategoryDragStart(event, categoryId) {
+            // Find the category card element (parent of the drag handle)
+            const categoryElement = event.target.closest('.category-card');
+            
+            if (!categoryElement) {
+                console.error('Could not find category card element');
+                return;
+            }
+            
+            draggedElement = categoryElement;
+            draggedType = 'category';
+            draggedCategoryId = categoryId;
+            draggedElement.classList.add('dragging');
+            event.dataTransfer.effectAllowed = 'move';
+            
+            console.log(`Started dragging category ${categoryId}`);
+        }
+
+        function handleCategoryDragEnd(event) {
+            console.log('Category drag end event triggered');
+            cleanupDragState();
+        }
+
+        // Server drag event handlers
+        function handleServerDragStart(event, serverId, categoryId) {
+            // Find the server item element (parent of the drag handle)
+            const serverElement = event.target.closest('.server-item');
+            
+            if (!serverElement) {
+                console.error('Could not find server item element');
+                return;
+            }
+            
+            draggedElement = serverElement;
+            draggedType = 'server';
+            draggedServerId = serverId;
+            draggedCategoryId = categoryId;
+            draggedElement.classList.add('dragging');
+            event.dataTransfer.effectAllowed = 'move';
+            
+            console.log(`Started dragging server ${serverId} from category ${categoryId}`);
+        }
+
+        function handleServerDragEnd(event) {
+            console.log('Server drag end event triggered');
+            cleanupDragState();
+        }
+
+        function handleServerDragOver(event, categoryId) {
+            event.preventDefault();
+            if (draggedType === 'server') {
+                console.log(`Server drag over event for category ${categoryId}`);
+                
+                // Clear all drag-over states first
+                document.querySelectorAll('.server-item.drag-over').forEach(item => {
+                    item.classList.remove('drag-over');
+                });
+                document.querySelectorAll('.category-card.drag-over').forEach(card => {
+                    card.classList.remove('drag-over');
+                });
+                
+                const serverItems = document.querySelectorAll(`#category-${categoryId} .server-item:not(.dragging)`);
+                const serverList = document.querySelector(`#category-${categoryId} .server-list`);
+                
+                if (serverItems.length === 0) {
+                    // If no servers in category, show drop zone on the server list container
+                    if (serverList) {
+                        serverList.classList.add('drag-over');
+                    }
+                    return;
+                }
+                
+                // Find the appropriate drop position
+                let foundDropZone = false;
+                serverItems.forEach((item, index) => {
+                    const rect = item.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    
+                    if (event.clientY < midY && !foundDropZone) {
+                        item.classList.add('drag-over');
+                        foundDropZone = true;
+                    }
+                });
+                
+                // If no drop zone found, add to the last item
+                if (!foundDropZone && serverItems.length > 0) {
+                    serverItems[serverItems.length - 1].classList.add('drag-over');
+                }
+            }
+        }
+
+        // Initialize app
+        async function init() {
+            await loadData();
+            
+            // Initialize theme
+            initTheme();
+            
+            // Load saved language
+            const savedLang = localStorage.getItem('dashboardLanguage') || 'en';
+            setLanguage(savedLang);
+            
+            // Initialize filter
+            filteredCategories = categories;
+            renderCategories();
+            
+            // Add search input event listener
+            document.getElementById('filterInput').addEventListener('input', filterItems);
+            
+            // Add mobile search functionality
+            const mobileFilterInput = document.getElementById('mobileFilterInput');
+            if (mobileFilterInput) {
+                mobileFilterInput.addEventListener('input', function() {
+                    document.getElementById('filterInput').value = this.value;
+                    filterItems();
+                });
+            }
+            
+            // Add keyboard event listeners for modals
+            document.addEventListener('keydown', handleModalKeyboard);
+            
+            // Initialize drag and drop
+            initDragAndDrop();
+            
+            // Check server statuses and load favicons
+            setTimeout(() => {
+                checkAllServerStatuses();
+            }, 1000);
+        }
+
+        // Handle keyboard events for modals
+        function handleModalKeyboard(event) {
+            // Check if any modal is visible
+            const visibleModal = document.querySelector('.modal-overlay:not(.hidden)');
+            if (!visibleModal) return;
+            
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                // Close modal without saving
+                if (visibleModal.id === 'addCategoryModal') {
+                    hideAddCategoryModal();
+                } else if (visibleModal.id === 'editCategoryModal') {
+                    hideEditCategoryModal();
+                } else if (visibleModal.id === 'editServerModal') {
+                    hideEditServerModal();
+                } else if (visibleModal.id === 'editHeaderModal') {
+                    hideEditHeaderModal();
+                }
+            } else if (event.key === 'Enter') {
+                event.preventDefault();
+                // Save and close modal
+                if (visibleModal.id === 'addCategoryModal') {
+                    addCategory();
+                } else if (visibleModal.id === 'editCategoryModal') {
+                    saveEditCategory();
+                } else if (visibleModal.id === 'editServerModal') {
+                    saveServerEdit();
+                } else if (visibleModal.id === 'editHeaderModal') {
+                    saveHeaderEdit();
+                }
+            }
+        }
+
+        // Start the app
+        init();
+
+        // Copy URL to clipboard
+        async function copyUrlToClipboard(url, button) {
+            try {
+                await navigator.clipboard.writeText(url);
+                
+                // Show temporary success feedback
+                if (button) {
+                    const originalText = button.innerHTML;
+                    button.innerHTML = 'Copied!';
+                    button.style.background = 'linear-gradient(135deg, #22c55e, #16a34a)';
+                    button.style.color = 'white';
+                    button.style.borderColor = '#22c55e';
+                    
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                        button.style.background = '';
+                        button.style.color = '';
+                        button.style.borderColor = '';
+                    }, 1500);
+                }
+                
+            } catch (err) {
+                console.error('Failed to copy URL:', err);
+                
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = url;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                // Show feedback
+                if (button) {
+                    const originalText = button.innerHTML;
+                    button.innerHTML = 'Copied!';
+                    button.style.background = 'linear-gradient(135deg, #22c55e, #16a34a)';
+                    button.style.color = 'white';
+                    button.style.borderColor = '#22c55e';
+                    
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                        button.style.background = '';
+                        button.style.color = '';
+                        button.style.borderColor = '';
+                    }, 1500);
+                }
+            }
+        }
+
+        // Global variables for edit modals
+    </script>
+</body>
+</html>
