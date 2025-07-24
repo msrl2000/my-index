@@ -4,7 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <!-- Content Security Policy to prevent XSS attacks -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https: http: blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https: http: blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-JRWZ3074SV"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-JRWZ3074SV');
+    </script>
+    
     <title>Home Server Dashboard</title>
     <style>
         :root {
@@ -848,6 +858,43 @@
             height: 8px;
         }
 
+        .title-separator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s;
+            position: relative;
+            min-height: 2rem;
+        }
+
+        .title-separator:hover {
+            background: transparent;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .title-text {
+            flex: 1;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            transition: color 0.2s;
+            text-align: left;
+        }
+
+        [dir="rtl"] .title-text {
+            text-align: right;
+        }
+
+        .title-text:hover {
+            color: #3b82f6;
+        }
+
         .server-item:hover {
             background: linear-gradient(135deg, rgba(148, 163, 184, 0.2), rgba(203, 213, 225, 0.25));
             transform: translateY(-1px);
@@ -1013,6 +1060,18 @@
             opacity: 0;
             transition: opacity 0.2s;
             pointer-events: none;
+            width: 0;
+            overflow: hidden;
+        }
+
+        .title-controls {
+            display: flex;
+            gap: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+            width: 0;
+            overflow: hidden;
         }
 
         .category-controls {
@@ -1021,6 +1080,8 @@
             opacity: 0;
             transition: opacity 0.2s;
             pointer-events: none;
+            width: 0;
+            overflow: hidden;
         }
 
         .category-controls .btn {
@@ -1032,11 +1093,22 @@
         .edit-mode .server-controls {
             opacity: 1;
             pointer-events: auto;
+            width: auto;
+            overflow: visible;
+        }
+
+        .edit-mode .title-controls {
+            opacity: 1;
+            pointer-events: auto;
+            width: auto;
+            overflow: visible;
         }
 
         .edit-mode .category-controls {
             opacity: 1;
             pointer-events: auto;
+            width: auto;
+            overflow: visible;
         }
 
         .edit-mode .category-controls .btn {
@@ -1060,6 +1132,8 @@
         .drag-handle {
             opacity: 0;
             pointer-events: none;
+            width: 0;
+            overflow: hidden;
         }
 
         .add-category-btn {
@@ -1070,12 +1144,20 @@
             display: none !important;
         }
 
+        .add-title-btn {
+            display: none !important;
+        }
+
         /* Show in edit mode */
         .edit-mode .add-category-btn {
             display: flex !important;
         }
 
         .edit-mode .add-server-btn {
+            display: block !important;
+        }
+
+        .edit-mode .add-title-btn {
             display: block !important;
         }
 
@@ -1756,6 +1838,45 @@
         </div>
     </div>
 
+    <!-- Edit Title Modal -->
+    <div id="editTitleModal" class="modal-overlay hidden" onclick="hideEditTitleModal(event)">
+        <div class="modal" onclick="event.stopPropagation()" dir="auto">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>Edit Title</h3>
+                <button class="btn btn-danger" onclick="deleteTitleFromModal()" style="background: #ef4444; color: white; border: 1px solid #ef4444; padding: 0.5rem; min-width: 2.5rem; height: 2.5rem; display: flex; align-items: center; justify-content: center;" id="deleteTitleBtn" title="Delete Title">🗑️</button>
+            </div>
+            <div class="form-group">
+                <label>Title Text:</label>
+                <input type="text" id="editTitleText" class="input" placeholder="Enter title text...">
+            </div>
+            <div class="form-group">
+                <label class="title-text-color-label">Title Text Color:</label>
+                <div class="color-picker">
+                    <div class="color-option" style="background: #3b82f6;" data-color="#3b82f6" onclick="selectTitleColor('#3b82f6')"></div>
+                    <div class="color-option" style="background: #ef4444;" data-color="#ef4444" onclick="selectTitleColor('#ef4444')"></div>
+                    <div class="color-option" style="background: #22c55e;" data-color="#22c55e" onclick="selectTitleColor('#22c55e')"></div>
+                    <div class="color-option" style="background: #f97316;" data-color="#f97316" onclick="selectTitleColor('#f97316')"></div>
+                    <div class="color-option" style="background: #8b5cf6;" data-color="#8b5cf6" onclick="selectTitleColor('#8b5cf6')"></div>
+                    <div class="color-option" style="background: #ec4899;" data-color="#ec4899" onclick="selectTitleColor('#ec4899')"></div>
+                    <div class="color-option" style="background: #06b6d4;" data-color="#06b6d4" onclick="selectTitleColor('#06b6d4')"></div>
+                    <div class="color-option" style="background: #84cc16;" data-color="#84cc16" onclick="selectTitleColor('#84cc16')"></div>
+                    <div class="color-option" style="background: #f59e0b;" data-color="#f59e0b" onclick="selectTitleColor('#f59e0b')"></div>
+                    <div class="color-option" style="background: #10b981;" data-color="#10b981" onclick="selectTitleColor('#10b981')"></div>
+                    <div class="color-option" style="background: #6366f1;" data-color="#6366f1" onclick="selectTitleColor('#6366f1')"></div>
+                    <div class="color-option" style="background: #8b5a2b;" data-color="#8b5a2b" onclick="selectTitleColor('#8b5a2b')"></div>
+                    <div class="color-option" style="background: #6b7280;" data-color="#6b7280" onclick="selectTitleColor('#6b7280')"></div>
+                    <div class="color-option" style="background: #000000;" data-color="#000000" onclick="selectTitleColor('#000000')"></div>
+                    <div class="color-option" style="background: #ffffff; border: 2px solid #ccc;" data-color="#ffffff" onclick="selectTitleColor('#ffffff')"></div>
+                </div>
+                <input type="hidden" id="editTitleTextColor" value="#1e293b">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="hideEditTitleModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveTitleEdit()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Edit Header Modal -->
     <div id="editHeaderModal" class="modal-overlay hidden" onclick="hideEditHeaderModal(event)">
         <div class="modal" onclick="event.stopPropagation()" dir="auto">
@@ -2278,7 +2399,12 @@
                         url: server.url,
                         borderColor: server.borderColor
                         // status is intentionally excluded
-                    }))
+                    })),
+                    titles: category.titles ? category.titles.map(title => ({
+                        id: title.id,
+                        text: title.text,
+                        textColor: title.textColor
+                    })) : []
                 })),
                 headerTitle: data.headerTitle,
                 headerSubtitle: data.headerSubtitle
@@ -2363,32 +2489,40 @@
                 exportConfig: "💾 Export Config",
                 importConfig: "📁 Import Config",
                 addServer: "➕ Add Server",
+                addTitle: "📝 Add Title",
                 filterPlaceholder: "Filter servers or categories...",
                 editCategory: "Edit category",
                 deleteCategory: "Delete category",
                 editServer: "Edit server",
+                editTitle: "Edit title",
                 openServer: "Open server",
                 deleteServer: "Delete server",
+                deleteTitle: "Delete title",
                 addNewCategory: "Add New Category",
                 addNewServer: "Add New Server",
+                addNewTitle: "Add New Title",
                 categoryName: "Category Name:",
                 categoryType: "Category Type:",
                 categoryBorderColor: "Category Border Color:",
                 cancel: "Cancel",
                 editServerTitle: "Edit Server",
                 serverName: "Server Name:",
+                titleText: "Title Text:",
                 serverUrl: "Server URL:",
                 status: "Status:",
                 serverBorderColor: "Server Border Color:",
+                titleTextColor: "Title Text Color:",
                 online: "🟢 Online",
                 warning: "🟡 Warning",
                 offline: "🔴 Offline",
                 saveChanges: "Save Changes",
                 deleteConfirm: "Delete this server?",
+                deleteTitleConfirm: "Delete this title?",
                 deleteCategoryConfirm: "Delete this entire category?",
                 importConfirm: "This will replace your current configuration. Continue?",
                 invalidConfig: "Invalid configuration file",
                 serverNotFound: "Server not found. Please try again.",
+                titleNotFound: "Title not found. Please try again.",
                 fillRequiredFields: "Please fill in all required fields.",
                 checkingStatus: "Checking server status...",
                 statusCheckFailed: "Status check failed",
@@ -2444,11 +2578,13 @@
                 // Drag and drop
                 dragToReorderCategory: "Drag to reorder category",
                 dragToReorderServer: "Drag to reorder server",
+                dragToReorderTitle: "Drag to reorder title",
                 // Validation messages
                 invalidUrl: "Please enter a valid URL (http:// or https://)",
                 titleTooLong: "Title is too long. Maximum 100 characters allowed.",
                 subtitleTooLong: "Subtitle is too long. Maximum 200 characters allowed.",
                 serverNameRequired: "Server name is required and must be less than 50 characters.",
+                titleTextRequired: "Title text is required and must be less than 50 characters.",
                 invalidUrlFormat: "Invalid URL format",
                 categoryNameRequired: "Category name is required and must be less than 50 characters.",
                 invalidConfigFormat: "Invalid configuration format. Please check your JSON file."
@@ -2460,32 +2596,40 @@
                 exportConfig: "💾 ייצא הגדרות",
                 importConfig: "📁 ייבא הגדרות",
                 addServer: "➕ הוסף שרת",
+                addTitle: "📝 הוסף כותרת",
                 filterPlaceholder: "סנן שרתים או קטגוריות...",
                 editCategory: "ערוך קטגוריה",
                 deleteCategory: "מחק קטגוריה",
                 editServer: "ערוך שרת",
+                editTitle: "ערוך כותרת",
                 openServer: "פתח שרת",
                 deleteServer: "מחק שרת",
+                deleteTitle: "מחק כותרת",
                 addNewCategory: "הוסף קטגוריה חדשה",
                 addNewServer: "הוסף שרת חדש",
+                addNewTitle: "הוסף כותרת חדשה",
                 categoryName: "שם קטגוריה:",
                 categoryType: "סוג קטגוריה:",
                 categoryBorderColor: "צבע גבול קטגוריה:",
                 cancel: "ביטול",
                 editServerTitle: "ערוך שרת",
                 serverName: "שם שרת:",
+                titleText: "טקסט כותרת:",
                 serverUrl: "כתובת שרת:",
                 status: "סטטוס:",
                 serverBorderColor: "צבע גבול שרת:",
+                titleTextColor: "צבע טקסט כותרת:",
                 online: "🟢 מקוון",
                 warning: "🟡 אזהרה",
                 offline: "🔴 לא מקוון",
                 saveChanges: "שמור שינויים",
                 deleteConfirm: "מחק שרת זה?",
+                deleteTitleConfirm: "מחק כותרת זו?",
                 deleteCategoryConfirm: "מחק קטגוריה שלמה זו?",
                 importConfirm: "זה יחליף את ההגדרות הנוכחיות שלך. להמשיך?",
                 invalidConfig: "קובץ הגדרות לא תקין",
                 serverNotFound: "שרת לא נמצא. נסה שוב.",
+                titleNotFound: "כותרת לא נמצאה. נסה שוב.",
                 fillRequiredFields: "אנא מלא את כל השדות הנדרשים.",
                 checkingStatus: "בודק סטטוס שרת...",
                 statusCheckFailed: "בדיקת סטטוס נכשלה",
@@ -2541,11 +2685,13 @@
                 // Drag and drop
                 dragToReorderCategory: "גרור לסידור מחדש של קטגוריה",
                 dragToReorderServer: "גרור לסידור מחדש של שרת",
+                dragToReorderTitle: "גרור לסידור מחדש של כותרת",
                 // Validation messages
                 invalidUrl: "אנא הכנס כתובת URL תקינה (http:// או https://)",
                 titleTooLong: "הכותרת ארוכה מדי. מותר עד 100 תווים.",
                 subtitleTooLong: "כותרת המשנה ארוכה מדי. מותר עד 200 תווים.",
                 serverNameRequired: "שם השרת נדרש וחייב להיות פחות מ-50 תווים.",
+                titleTextRequired: "טקסט הכותרת נדרש וחייב להיות פחות מ-50 תווים.",
                 invalidUrlFormat: "פורמט כתובת URL לא תקין",
                 categoryNameRequired: "שם הקטגוריה נדרש וחייב להיות פחות מ-50 תווים.",
                 invalidConfigFormat: "פורמט הגדרות לא תקין. אנא בדוק את קובץ ה-JSON שלך."
@@ -2686,6 +2832,9 @@
             const editServerModal = document.querySelector('#editServerModal h3');
             if (editServerModal) editServerModal.textContent = t('editServerTitle');
             
+            const editTitleModal = document.querySelector('#editTitleModal h3');
+            if (editTitleModal) editTitleModal.textContent = t('editTitle');
+            
             const editHeaderModal = document.querySelector('#editHeaderModal h3');
             if (editHeaderModal) editHeaderModal.textContent = t('editHeaderTitle');
             
@@ -2734,6 +2883,9 @@
             const serverBorderColorLabel = document.querySelector('.server-border-color-label');
             if (serverBorderColorLabel) serverBorderColorLabel.textContent = t('serverBorderColor');
             
+            const titleTextColorLabel = document.querySelector('.title-text-color-label');
+            if (titleTextColorLabel) titleTextColorLabel.textContent = t('titleTextColor');
+            
             // Update modal form labels with null checks
             const addCategoryLabels = document.querySelectorAll('#addCategoryModal label');
             if (addCategoryLabels[0]) addCategoryLabels[0].textContent = t('categoryName');
@@ -2747,6 +2899,10 @@
             if (editServerLabels[0]) editServerLabels[0].textContent = t('serverName');
             if (editServerLabels[1]) editServerLabels[1].textContent = t('serverUrl');
             if (editServerLabels[2]) editServerLabels[2].textContent = t('status');
+            
+            const editTitleLabels = document.querySelectorAll('#editTitleModal label');
+            if (editTitleLabels[0]) editTitleLabels[0].textContent = t('titleText');
+            if (editTitleLabels[1]) editTitleLabels[1].textContent = t('titleTextColor');
             
             const editHeaderLabels = document.querySelectorAll('#editHeaderModal label');
             if (editHeaderLabels[0]) editHeaderLabels[0].textContent = t('headerTitleLabel');
@@ -3066,111 +3222,184 @@
                 serverList.ondrop = (e) => handleServerDrop(e, category.id);
                 serverList.style.minHeight = '50px';
                 
+                // Add servers and titles in order
+                const allItems = [];
+                
                 // Add servers
                 category.servers.forEach(server => {
-                    const serverItem = document.createElement('div');
-                    serverItem.className = 'server-item';
-                    serverItem.id = `server-${server.id}`;
-                    serverItem.onclick = () => handleMobileServerClick(server.id, server.url, category.id);
-                    serverItem.style.position = 'relative';
-                    serverItem.style.borderColor = server.borderColor || '#94a3b8';
-                    
-                    // Status dot
-                    const statusDot = document.createElement('div');
-                    statusDot.className = `status-dot status-${server.status}`;
-                    statusDot.onclick = (e) => {
-                        e.stopPropagation();
-                        checkIndividualServerStatus(category.id, server.id);
-                    };
-                    statusDot.style.cursor = 'pointer';
-                    statusDot.title = t('clickToCheckStatus');
-                    
-                    // Server info
-                    const serverInfo = document.createElement('div');
-                    serverInfo.className = 'server-info';
-                    serverInfo.id = `serverInfo-${server.id}`;
-                    
-                    const serverName = document.createElement('div');
-                    serverName.className = 'server-name';
-                    serverName.textContent = server.name; // Use textContent for security
-                    serverName.title = t('clickToEdit');
-                    
-                    const serverUrl = document.createElement('div');
-                    serverUrl.className = 'server-url';
-                    serverUrl.textContent = server.url; // Use textContent for security
-                    
-                    serverInfo.appendChild(serverName);
-                    serverInfo.appendChild(serverUrl);
-                    
-                    // Server controls
-                    const serverControls = document.createElement('div');
-                    serverControls.className = 'server-controls';
-                    
-                    const serverEditBtn = document.createElement('button');
-                    serverEditBtn.className = 'btn btn-ghost btn-small';
-                    serverEditBtn.textContent = '✏️';
-                    serverEditBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        showEditServerModal(category.id, server.id);
-                    };
-                    serverEditBtn.title = t('editServer');
-                    
-                    const serverDragHandle = document.createElement('button');
-                    serverDragHandle.className = 'btn btn-ghost btn-small drag-handle';
-                    serverDragHandle.textContent = '⋮⋮';
-                    serverDragHandle.draggable = true;
-                    serverDragHandle.ondragstart = (e) => handleServerDragStart(e, server.id, category.id);
-                    serverDragHandle.ondragend = handleServerDragEnd;
-                    serverDragHandle.title = t('dragToReorderServer');
-                    serverDragHandle.onclick = (e) => e.stopPropagation();
-                    
-                    serverControls.appendChild(serverEditBtn);
-                    serverControls.appendChild(serverDragHandle);
-                    
-                    // URL popup
-                    const urlPopup = document.createElement('div');
-                    urlPopup.className = 'url-popup';
-                    
-                    const urlPopupContent = document.createElement('div');
-                    urlPopupContent.className = 'url-popup-content';
-                    
-                    const urlDisplay = document.createElement('div');
-                    urlDisplay.className = 'url-display';
-                    urlDisplay.textContent = server.url; // Use textContent for security
-                    
-                    const urlActions = document.createElement('div');
-                    urlActions.className = 'url-actions';
-                    
-                    const copyBtn = document.createElement('a');
-                    copyBtn.href = '#';
-                    copyBtn.className = 'url-copy-btn';
-                    copyBtn.textContent = '📋 Copy';
-                    copyBtn.onclick = (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        copyUrlToClipboard(server.url, copyBtn);
-                    };
-                    copyBtn.title = 'Copy URL';
-                    
-                    const openBtn = document.createElement('a');
-                    openBtn.href = server.url;
-                    openBtn.className = 'url-open-btn';
-                    openBtn.target = '_blank';
-                    openBtn.textContent = '🔗 Open';
-                    openBtn.title = 'Open URL';
-                    
-                    urlActions.appendChild(copyBtn);
-                    urlActions.appendChild(openBtn);
-                    urlPopupContent.appendChild(urlDisplay);
-                    urlPopupContent.appendChild(urlActions);
-                    urlPopup.appendChild(urlPopupContent);
-                    
-                    serverItem.appendChild(statusDot);
-                    serverItem.appendChild(serverInfo);
-                    serverItem.appendChild(serverControls);
-                    serverItem.appendChild(urlPopup);
-                    
-                    serverList.appendChild(serverItem);
+                    allItems.push({ type: 'server', data: server });
+                });
+                
+                // Add titles
+                if (category.titles) {
+                    category.titles.forEach(title => {
+                        allItems.push({ type: 'title', data: title });
+                    });
+                }
+                
+                // Sort items by their position in the original arrays (this is a simple approach)
+                // In a more complex implementation, you might want to store positions explicitly
+                allItems.sort((a, b) => {
+                    if (a.type === b.type) {
+                        if (a.type === 'server') {
+                            return category.servers.indexOf(a.data) - category.servers.indexOf(b.data);
+                        } else {
+                            return category.titles.indexOf(a.data) - category.titles.indexOf(b.data);
+                        }
+                    }
+                    // For now, servers come before titles
+                    return a.type === 'server' ? -1 : 1;
+                });
+                
+                allItems.forEach(item => {
+                    if (item.type === 'server') {
+                        const server = item.data;
+                        const serverItem = document.createElement('div');
+                        serverItem.className = 'server-item';
+                        serverItem.id = `server-${server.id}`;
+                        serverItem.onclick = () => handleMobileServerClick(server.id, server.url, category.id);
+                        serverItem.style.position = 'relative';
+                        serverItem.style.borderColor = server.borderColor || '#94a3b8';
+                        
+                        // Status dot
+                        const statusDot = document.createElement('div');
+                        statusDot.className = `status-dot status-${server.status}`;
+                        statusDot.onclick = (e) => {
+                            e.stopPropagation();
+                            checkIndividualServerStatus(category.id, server.id);
+                        };
+                        statusDot.style.cursor = 'pointer';
+                        statusDot.title = t('clickToCheckStatus');
+                        
+                        // Server info
+                        const serverInfo = document.createElement('div');
+                        serverInfo.className = 'server-info';
+                        serverInfo.id = `serverInfo-${server.id}`;
+                        
+                        const serverName = document.createElement('div');
+                        serverName.className = 'server-name';
+                        serverName.textContent = server.name; // Use textContent for security
+                        serverName.title = t('clickToEdit');
+                        
+                        const serverUrl = document.createElement('div');
+                        serverUrl.className = 'server-url';
+                        serverUrl.textContent = server.url; // Use textContent for security
+                        
+                        serverInfo.appendChild(serverName);
+                        serverInfo.appendChild(serverUrl);
+                        
+                        // Server controls
+                        const serverControls = document.createElement('div');
+                        serverControls.className = 'server-controls';
+                        
+                        const serverEditBtn = document.createElement('button');
+                        serverEditBtn.className = 'btn btn-ghost btn-small';
+                        serverEditBtn.textContent = '✏️';
+                        serverEditBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            showEditServerModal(category.id, server.id);
+                        };
+                        serverEditBtn.title = t('editServer');
+                        
+                        const serverDragHandle = document.createElement('button');
+                        serverDragHandle.className = 'btn btn-ghost btn-small drag-handle';
+                        serverDragHandle.textContent = '⋮⋮';
+                        serverDragHandle.draggable = true;
+                        serverDragHandle.ondragstart = (e) => handleServerDragStart(e, server.id, category.id);
+                        serverDragHandle.ondragend = handleServerDragEnd;
+                        serverDragHandle.title = t('dragToReorderServer');
+                        serverDragHandle.onclick = (e) => e.stopPropagation();
+                        
+                        serverControls.appendChild(serverEditBtn);
+                        serverControls.appendChild(serverDragHandle);
+                        
+                        // URL popup
+                        const urlPopup = document.createElement('div');
+                        urlPopup.className = 'url-popup';
+                        
+                        const urlPopupContent = document.createElement('div');
+                        urlPopupContent.className = 'url-popup-content';
+                        
+                        const urlDisplay = document.createElement('div');
+                        urlDisplay.className = 'url-display';
+                        urlDisplay.textContent = server.url; // Use textContent for security
+                        
+                        const urlActions = document.createElement('div');
+                        urlActions.className = 'url-actions';
+                        
+                        const copyBtn = document.createElement('a');
+                        copyBtn.href = '#';
+                        copyBtn.className = 'url-copy-btn';
+                        copyBtn.textContent = '📋 Copy';
+                        copyBtn.onclick = (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            copyUrlToClipboard(server.url, copyBtn);
+                        };
+                        copyBtn.title = 'Copy URL';
+                        
+                        const openBtn = document.createElement('a');
+                        openBtn.href = server.url;
+                        openBtn.className = 'url-open-btn';
+                        openBtn.target = '_blank';
+                        openBtn.textContent = '🔗 Open';
+                        openBtn.title = 'Open URL';
+                        
+                        urlActions.appendChild(copyBtn);
+                        urlActions.appendChild(openBtn);
+                        urlPopupContent.appendChild(urlDisplay);
+                        urlPopupContent.appendChild(urlActions);
+                        urlPopup.appendChild(urlPopupContent);
+                        
+                        serverItem.appendChild(statusDot);
+                        serverItem.appendChild(serverInfo);
+                        serverItem.appendChild(serverControls);
+                        serverItem.appendChild(urlPopup);
+                        
+                        serverList.appendChild(serverItem);
+                    } else if (item.type === 'title') {
+                        const title = item.data;
+                        const titleItem = document.createElement('div');
+                        titleItem.className = 'title-separator';
+                        titleItem.id = `title-${title.id}`;
+                        titleItem.style.position = 'relative';
+                        
+                        // Title text
+                        const titleText = document.createElement('div');
+                        titleText.className = 'title-text';
+                        titleText.textContent = title.text; // Use textContent for security
+                        titleText.style.color = title.textColor || '#1e293b';
+                        
+                        // Title controls
+                        const titleControls = document.createElement('div');
+                        titleControls.className = 'title-controls';
+                        
+                        const titleEditBtn = document.createElement('button');
+                        titleEditBtn.className = 'btn btn-ghost btn-small';
+                        titleEditBtn.textContent = '✏️';
+                        titleEditBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            showEditTitleModal(category.id, title.id);
+                        };
+                        titleEditBtn.title = t('editTitle');
+                        
+                        const titleDragHandle = document.createElement('button');
+                        titleDragHandle.className = 'btn btn-ghost btn-small drag-handle';
+                        titleDragHandle.textContent = '⋮⋮';
+                        titleDragHandle.draggable = true;
+                        titleDragHandle.ondragstart = (e) => handleTitleDragStart(e, title.id, category.id);
+                        titleDragHandle.ondragend = handleTitleDragEnd;
+                        titleDragHandle.title = t('dragToReorderTitle');
+                        titleDragHandle.onclick = (e) => e.stopPropagation();
+                        
+                        titleControls.appendChild(titleEditBtn);
+                        titleControls.appendChild(titleDragHandle);
+                        
+                        titleItem.appendChild(titleText);
+                        titleItem.appendChild(titleControls);
+                        
+                        serverList.appendChild(titleItem);
+                    }
                 });
                 
                 // Add server button
@@ -3182,6 +3411,16 @@
                 addServerBtn.style.marginTop = '0.5rem';
                 
                 serverList.appendChild(addServerBtn);
+                
+                // Add title button
+                const addTitleBtn = document.createElement('button');
+                addTitleBtn.className = 'btn btn-secondary add-title-btn';
+                addTitleBtn.textContent = t('addTitle');
+                addTitleBtn.onclick = () => addTitle(category.id);
+                addTitleBtn.style.width = '100%';
+                addTitleBtn.style.marginTop = '0.5rem';
+                
+                serverList.appendChild(addTitleBtn);
                 
                 categoryCard.appendChild(categoryHeader);
                 categoryCard.appendChild(serverList);
@@ -3422,6 +3661,136 @@
                     renderCategories();
                     showChangesNotification();
                     hideEditServerModal();
+                }
+            }
+        }
+
+        // Global variables for title modals
+        let currentEditTitleId = null;
+
+        // Show edit title modal
+        function showEditTitleModal(categoryId, titleId) {
+            const category = categories.find(c => c.id === categoryId);
+            const title = titleId ? category.titles.find(t => t.id === titleId) : null;
+            
+            currentEditCategoryId = categoryId;
+            currentEditTitleId = titleId;
+            
+            // Show the modal first
+            document.getElementById('editTitleModal').classList.remove('hidden');
+            
+            // Update modal title based on whether it's a new title or existing
+            const modalTitle = document.querySelector('#editTitleModal h3');
+            if (title) {
+                modalTitle.textContent = t('editTitle');
+                document.getElementById('editTitleText').value = title.text;
+                document.getElementById('editTitleTextColor').value = title.textColor || '#1e293b';
+                selectTitleColor(title.textColor || '#1e293b');
+            } else {
+                // New title
+                modalTitle.textContent = t('addNewTitle');
+                document.getElementById('editTitleText').value = '';
+                document.getElementById('editTitleTextColor').value = '#1e293b';
+                selectTitleColor('#1e293b');
+            }
+        }
+
+        // Hide edit title modal
+        function hideEditTitleModal(event) {
+            if (!event || event.target.classList.contains('modal-overlay')) {
+                document.getElementById('editTitleModal').classList.add('hidden');
+                currentEditCategoryId = null;
+                currentEditTitleId = null;
+            }
+        }
+
+        // Save title edit
+        function saveTitleEdit() {
+            const text = document.getElementById('editTitleText').value.trim();
+            const textColor = document.getElementById('editTitleTextColor').value;
+            
+            // Validate input
+            if (!validateString(text, 50)) {
+                alert(t('titleTextRequired'));
+                return;
+            }
+            
+            if (text && currentEditCategoryId) {
+                const category = categories.find(c => c.id === currentEditCategoryId);
+                
+                // Initialize titles array if it doesn't exist
+                if (!category.titles) {
+                    category.titles = [];
+                }
+                
+                if (currentEditTitleId) {
+                    // Editing existing title
+                    console.log('Editing existing title:', text);
+                    const title = category.titles.find(t => t.id === currentEditTitleId);
+                    if (title) {
+                        title.text = text;
+                        title.textColor = textColor;
+                    } else {
+                        alert(t('titleNotFound'));
+                        return;
+                    }
+                } else {
+                    // Adding new title
+                    console.log('Adding new title:', text);
+                    const newTitle = {
+                        id: Date.now().toString(),
+                        text: text,
+                        textColor: textColor
+                    };
+                    category.titles.push(newTitle);
+                }
+                
+                saveData();
+                renderCategories();
+                showChangesNotification();
+                hideEditTitleModal();
+            } else {
+                alert(t('fillRequiredFields'));
+            }
+        }
+
+        // Delete title from modal
+        function deleteTitleFromModal() {
+            if (currentEditCategoryId && currentEditTitleId && confirm(t('deleteTitleConfirm'))) {
+                const category = categories.find(c => c.id === currentEditCategoryId);
+                if (category && category.titles) {
+                    category.titles = category.titles.filter(t => t.id !== currentEditTitleId);
+                    saveData();
+                    renderCategories();
+                    showChangesNotification();
+                    hideEditTitleModal();
+                }
+            }
+        }
+
+        // Color selection for title
+        function selectTitleColor(color) {
+            document.getElementById('editTitleTextColor').value = color;
+            document.querySelectorAll('#editTitleModal .color-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            document.querySelector(`#editTitleModal .color-option[data-color="${color}"]`).classList.add('selected');
+        }
+
+        // Add title
+        function addTitle(categoryId) {
+            showEditTitleModal(categoryId, null);
+        }
+
+        // Delete title
+        function deleteTitle(categoryId, titleId) {
+            if (confirm(t('deleteTitleConfirm'))) {
+                const category = categories.find(c => c.id === categoryId);
+                if (category.titles) {
+                    category.titles = category.titles.filter(t => t.id !== titleId);
+                    saveData();
+                    renderCategories();
+                    showChangesNotification();
                 }
             }
         }
@@ -3773,9 +4142,10 @@
 
         // Drag and Drop functionality
         let draggedElement = null;
-        let draggedType = null; // 'category' or 'server'
+        let draggedType = null; // 'category', 'server', or 'title'
         let draggedCategoryId = null;
         let draggedServerId = null;
+        let draggedTitleId = null;
 
         // Initialize drag and drop
         function initDragAndDrop() {
@@ -3844,64 +4214,123 @@
             cleanupDragState();
         }
 
-        // Handle server drop
+        // Handle server/title drop
         function handleServerDrop(e, targetCategoryId) {
-            console.log('Server drop event triggered');
+            console.log(`${draggedType} drop event triggered`);
             e.preventDefault();
-            if (draggedType !== 'server') {
-                console.log('Not a server drag, ignoring');
+            if (draggedType !== 'server' && draggedType !== 'title') {
+                console.log('Not a server or title drag, ignoring');
                 return;
             }
-            
-            console.log(`Dropping server ${draggedServerId} to category ${targetCategoryId}`);
             
             const targetCategory = categories.find(cat => cat.id === targetCategoryId);
             if (!targetCategory) return;
             
-            // Find source category and server
-            const sourceCategory = categories.find(cat => 
-                cat.servers.some(server => server.id === draggedServerId)
-            );
-            const sourceServer = sourceCategory?.servers.find(server => server.id === draggedServerId);
-            
-            if (!sourceCategory || !sourceServer) {
-                cleanupDragState();
-                return;
-            }
-            
-            // Get all server items in the target category (excluding the dragged one)
-            const serverItems = document.querySelectorAll(`#category-${targetCategoryId} .server-item:not(.dragging)`);
-            
-            // Calculate drop position
-            let dropIndex = -1;
-            if (serverItems.length > 0) {
-                dropIndex = Array.from(serverItems).findIndex(item => {
-                    const rect = item.getBoundingClientRect();
-                    const midY = rect.top + rect.height / 2;
-                    return e.clientY < midY;
-                });
+            if (draggedType === 'server') {
+                console.log(`Dropping server ${draggedServerId} to category ${targetCategoryId}`);
                 
-                // If not found, drop at the end
-                if (dropIndex === -1) {
-                    dropIndex = serverItems.length;
+                // Find source category and server
+                const sourceCategory = categories.find(cat => 
+                    cat.servers.some(server => server.id === draggedServerId)
+                );
+                const sourceServer = sourceCategory?.servers.find(server => server.id === draggedServerId);
+                
+                if (!sourceCategory || !sourceServer) {
+                    cleanupDragState();
+                    return;
                 }
-            } else {
-                // Empty category - drop at position 0
-                dropIndex = 0;
+                
+                // Get all items in the target category (excluding the dragged one)
+                const serverItems = document.querySelectorAll(`#category-${targetCategoryId} .server-item:not(.dragging)`);
+                const titleItems = document.querySelectorAll(`#category-${targetCategoryId} .title-separator:not(.dragging)`);
+                const allItems = [...serverItems, ...titleItems];
+                
+                // Calculate drop position
+                let dropIndex = -1;
+                if (allItems.length > 0) {
+                    dropIndex = Array.from(allItems).findIndex(item => {
+                        const rect = item.getBoundingClientRect();
+                        const midY = rect.top + rect.height / 2;
+                        return e.clientY < midY;
+                    });
+                    
+                    // If not found, drop at the end
+                    if (dropIndex === -1) {
+                        dropIndex = allItems.length;
+                    }
+                } else {
+                    // Empty category - drop at position 0
+                    dropIndex = 0;
+                }
+                
+                // Remove from source category
+                const sourceServerIndex = sourceCategory.servers.findIndex(server => server.id === draggedServerId);
+                sourceCategory.servers.splice(sourceServerIndex, 1);
+                
+                // Add to target category at the correct position
+                if (dropIndex >= targetCategory.servers.length) {
+                    targetCategory.servers.push(sourceServer);
+                } else {
+                    targetCategory.servers.splice(dropIndex, 0, sourceServer);
+                }
+                
+                console.log(`Server "${sourceServer.name}" moved from category "${sourceCategory.name}" to "${targetCategory.name}" at position ${dropIndex}`);
+            } else if (draggedType === 'title') {
+                console.log(`Dropping title ${draggedTitleId} to category ${targetCategoryId}`);
+                
+                // Find source category and title
+                const sourceCategory = categories.find(cat => 
+                    cat.titles && cat.titles.some(title => title.id === draggedTitleId)
+                );
+                const sourceTitle = sourceCategory?.titles.find(title => title.id === draggedTitleId);
+                
+                if (!sourceCategory || !sourceTitle) {
+                    cleanupDragState();
+                    return;
+                }
+                
+                // Initialize titles array if it doesn't exist
+                if (!targetCategory.titles) {
+                    targetCategory.titles = [];
+                }
+                
+                // Get all items in the target category (excluding the dragged one)
+                const serverItems = document.querySelectorAll(`#category-${targetCategoryId} .server-item:not(.dragging)`);
+                const titleItems = document.querySelectorAll(`#category-${targetCategoryId} .title-separator:not(.dragging)`);
+                const allItems = [...serverItems, ...titleItems];
+                
+                // Calculate drop position
+                let dropIndex = -1;
+                if (allItems.length > 0) {
+                    dropIndex = Array.from(allItems).findIndex(item => {
+                        const rect = item.getBoundingClientRect();
+                        const midY = rect.top + rect.height / 2;
+                        return e.clientY < midY;
+                    });
+                    
+                    // If not found, drop at the end
+                    if (dropIndex === -1) {
+                        dropIndex = allItems.length;
+                    }
+                } else {
+                    // Empty category - drop at position 0
+                    dropIndex = 0;
+                }
+                
+                // Remove from source category
+                const sourceTitleIndex = sourceCategory.titles.findIndex(title => title.id === draggedTitleId);
+                sourceCategory.titles.splice(sourceTitleIndex, 1);
+                
+                // Add to target category at the correct position
+                if (dropIndex >= targetCategory.titles.length) {
+                    targetCategory.titles.push(sourceTitle);
+                } else {
+                    targetCategory.titles.splice(dropIndex, 0, sourceTitle);
+                }
+                
+                console.log(`Title "${sourceTitle.text}" moved from category "${sourceCategory.name}" to "${targetCategory.name}" at position ${dropIndex}`);
             }
             
-            // Remove from source category
-            const sourceServerIndex = sourceCategory.servers.findIndex(server => server.id === draggedServerId);
-            sourceCategory.servers.splice(sourceServerIndex, 1);
-            
-            // Add to target category at the correct position
-            if (dropIndex === -1 || dropIndex >= targetCategory.servers.length) {
-                targetCategory.servers.push(sourceServer);
-            } else {
-                targetCategory.servers.splice(dropIndex, 0, sourceServer);
-            }
-            
-            console.log(`Server "${sourceServer.name}" moved from category "${sourceCategory.name}" to "${targetCategory.name}" at position ${dropIndex}`);
             console.log('Updated categories:', JSON.stringify(categories, null, 2));
             
             saveData();
@@ -3932,9 +4361,14 @@
                 list.classList.remove('drag-over');
             });
             
+            document.querySelectorAll('.title-separator.drag-over').forEach(item => {
+                item.classList.remove('drag-over');
+            });
+            
             draggedType = null;
             draggedCategoryId = null;
             draggedServerId = null;
+            draggedTitleId = null;
             console.log('Drag state cleaned up');
         }
 
@@ -3987,13 +4421,41 @@
             cleanupDragState();
         }
 
+        // Title drag event handlers
+        function handleTitleDragStart(event, titleId, categoryId) {
+            // Find the title item element (parent of the drag handle)
+            const titleElement = event.target.closest('.title-separator');
+            
+            if (!titleElement) {
+                console.error('Could not find title item element');
+                return;
+            }
+            
+            draggedElement = titleElement;
+            draggedType = 'title';
+            draggedTitleId = titleId;
+            draggedCategoryId = categoryId;
+            draggedElement.classList.add('dragging');
+            event.dataTransfer.effectAllowed = 'move';
+            
+            console.log(`Started dragging title ${titleId} from category ${categoryId}`);
+        }
+
+        function handleTitleDragEnd(event) {
+            console.log('Title drag end event triggered');
+            cleanupDragState();
+        }
+
         function handleServerDragOver(event, categoryId) {
             event.preventDefault();
-            if (draggedType === 'server') {
-                console.log(`Server drag over event for category ${categoryId}`);
+            if (draggedType === 'server' || draggedType === 'title') {
+                console.log(`${draggedType} drag over event for category ${categoryId}`);
                 
                 // Clear all drag-over states first
                 document.querySelectorAll('.server-item.drag-over').forEach(item => {
+                    item.classList.remove('drag-over');
+                });
+                document.querySelectorAll('.title-separator.drag-over').forEach(item => {
                     item.classList.remove('drag-over');
                 });
                 document.querySelectorAll('.category-card.drag-over').forEach(card => {
@@ -4001,10 +4463,12 @@
                 });
                 
                 const serverItems = document.querySelectorAll(`#category-${categoryId} .server-item:not(.dragging)`);
+                const titleItems = document.querySelectorAll(`#category-${categoryId} .title-separator:not(.dragging)`);
+                const allItems = [...serverItems, ...titleItems];
                 const serverList = document.querySelector(`#category-${categoryId} .server-list`);
                 
-                if (serverItems.length === 0) {
-                    // If no servers in category, show drop zone on the server list container
+                if (allItems.length === 0) {
+                    // If no items in category, show drop zone on the server list container
                     if (serverList) {
                         serverList.classList.add('drag-over');
                     }
@@ -4013,7 +4477,7 @@
                 
                 // Find the appropriate drop position
                 let foundDropZone = false;
-                serverItems.forEach((item, index) => {
+                allItems.forEach((item, index) => {
                     const rect = item.getBoundingClientRect();
                     const midY = rect.top + rect.height / 2;
                     
@@ -4024,8 +4488,8 @@
                 });
                 
                 // If no drop zone found, add to the last item
-                if (!foundDropZone && serverItems.length > 0) {
-                    serverItems[serverItems.length - 1].classList.add('drag-over');
+                if (!foundDropZone && allItems.length > 0) {
+                    allItems[allItems.length - 1].classList.add('drag-over');
                 }
             }
         }
