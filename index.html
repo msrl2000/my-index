@@ -2404,7 +2404,8 @@
                         id: title.id,
                         text: title.text,
                         textColor: title.textColor
-                    })) : []
+                    })) : [],
+                    itemOrder: category.itemOrder || []
                 })),
                 headerTitle: data.headerTitle,
                 headerSubtitle: data.headerSubtitle
@@ -2478,6 +2479,63 @@
                 'automation': '🤖'
             };
             return icons[type] || '📁';
+        }
+
+        // Get mixed order of items (servers and titles) for a category
+        function getMixedItems(category) {
+            const mixedItems = [];
+            
+            // Initialize itemOrder if it doesn't exist (for backward compatibility)
+            if (!category.itemOrder) {
+                category.itemOrder = [];
+                
+                // Add existing servers and titles to itemOrder
+                if (category.servers) {
+                    category.servers.forEach(server => {
+                        category.itemOrder.push({ type: 'server', id: server.id });
+                    });
+                }
+                if (category.titles) {
+                    category.titles.forEach(title => {
+                        category.itemOrder.push({ type: 'title', id: title.id });
+                    });
+                }
+            }
+            
+            // Build mixed items array based on itemOrder
+            category.itemOrder.forEach(orderItem => {
+                if (orderItem.type === 'server') {
+                    const server = category.servers.find(s => s.id === orderItem.id);
+                    if (server) {
+                        mixedItems.push({ type: 'server', data: server });
+                    }
+                } else if (orderItem.type === 'title') {
+                    const title = category.titles.find(t => t.id === orderItem.id);
+                    if (title) {
+                        mixedItems.push({ type: 'title', data: title });
+                    }
+                }
+            });
+            
+            // Add any items that might not be in itemOrder (for backward compatibility)
+            if (category.servers) {
+                category.servers.forEach(server => {
+                    const exists = mixedItems.some(item => item.type === 'server' && item.data.id === server.id);
+                    if (!exists) {
+                        mixedItems.push({ type: 'server', data: server });
+                    }
+                });
+            }
+            if (category.titles) {
+                category.titles.forEach(title => {
+                    const exists = mixedItems.some(item => item.type === 'title' && item.data.id === title.id);
+                    if (!exists) {
+                        mixedItems.push({ type: 'title', data: title });
+                    }
+                });
+            }
+            
+            return mixedItems;
         }
 
         // Translations
@@ -3222,36 +3280,11 @@
                 serverList.ondrop = (e) => handleServerDrop(e, category.id);
                 serverList.style.minHeight = '50px';
                 
-                // Add servers and titles in order
-                const allItems = [];
+                // Get mixed order of items (servers and titles)
+                const mixedItems = getMixedItems(category);
                 
-                // Add servers
-                category.servers.forEach(server => {
-                    allItems.push({ type: 'server', data: server });
-                });
-                
-                // Add titles
-                if (category.titles) {
-                    category.titles.forEach(title => {
-                        allItems.push({ type: 'title', data: title });
-                    });
-                }
-                
-                // Sort items by their position in the original arrays (this is a simple approach)
-                // In a more complex implementation, you might want to store positions explicitly
-                allItems.sort((a, b) => {
-                    if (a.type === b.type) {
-                        if (a.type === 'server') {
-                            return category.servers.indexOf(a.data) - category.servers.indexOf(b.data);
-                        } else {
-                            return category.titles.indexOf(a.data) - category.titles.indexOf(b.data);
-                        }
-                    }
-                    // For now, servers come before titles
-                    return a.type === 'server' ? -1 : 1;
-                });
-                
-                allItems.forEach(item => {
+                // Render items in mixed order
+                mixedItems.forEach(item => {
                     if (item.type === 'server') {
                         const server = item.data;
                         const serverItem = document.createElement('div');
@@ -3577,6 +3610,11 @@
             if (name && url && currentEditCategoryId) {
                 const category = categories.find(c => c.id === currentEditCategoryId);
                 
+                // Initialize itemOrder if it doesn't exist
+                if (!category.itemOrder) {
+                    category.itemOrder = [];
+                }
+                
                 if (currentEditServerId) {
                     // Editing existing server
                     console.log('Editing existing server:', name);
@@ -3601,6 +3639,9 @@
                         borderColor: borderColor
                     };
                     category.servers.push(newServer);
+                    
+                    // Add to itemOrder at the end
+                    category.itemOrder.push({ type: 'server', id: newServer.id });
                 }
                     
                     saveData();
@@ -3657,6 +3698,14 @@
                 const category = categories.find(c => c.id === currentEditCategoryId);
                 if (category) {
                     category.servers = category.servers.filter(s => s.id !== currentEditServerId);
+                    
+                    // Remove from itemOrder
+                    if (category.itemOrder) {
+                        category.itemOrder = category.itemOrder.filter(item => 
+                            !(item.type === 'server' && item.id === currentEditServerId)
+                        );
+                    }
+                    
                     saveData();
                     renderCategories();
                     showChangesNotification();
@@ -3723,6 +3772,11 @@
                     category.titles = [];
                 }
                 
+                // Initialize itemOrder if it doesn't exist
+                if (!category.itemOrder) {
+                    category.itemOrder = [];
+                }
+                
                 if (currentEditTitleId) {
                     // Editing existing title
                     console.log('Editing existing title:', text);
@@ -3743,6 +3797,9 @@
                         textColor: textColor
                     };
                     category.titles.push(newTitle);
+                    
+                    // Add to itemOrder at the end
+                    category.itemOrder.push({ type: 'title', id: newTitle.id });
                 }
                 
                 saveData();
@@ -3760,6 +3817,14 @@
                 const category = categories.find(c => c.id === currentEditCategoryId);
                 if (category && category.titles) {
                     category.titles = category.titles.filter(t => t.id !== currentEditTitleId);
+                    
+                    // Remove from itemOrder
+                    if (category.itemOrder) {
+                        category.itemOrder = category.itemOrder.filter(item => 
+                            !(item.type === 'title' && item.id === currentEditTitleId)
+                        );
+                    }
+                    
                     saveData();
                     renderCategories();
                     showChangesNotification();
@@ -4226,6 +4291,14 @@
             const targetCategory = categories.find(cat => cat.id === targetCategoryId);
             if (!targetCategory) return;
             
+            // Initialize itemOrder if it doesn't exist
+            if (!targetCategory.itemOrder) {
+                targetCategory.itemOrder = [];
+            }
+            
+            // Check if this is a reorder within the same category
+            const isSameCategory = draggedCategoryId === targetCategoryId;
+            
             if (draggedType === 'server') {
                 console.log(`Dropping server ${draggedServerId} to category ${targetCategoryId}`);
                 
@@ -4263,18 +4336,41 @@
                     dropIndex = 0;
                 }
                 
-                // Remove from source category
-                const sourceServerIndex = sourceCategory.servers.findIndex(server => server.id === draggedServerId);
-                sourceCategory.servers.splice(sourceServerIndex, 1);
-                
-                // Add to target category at the correct position
-                if (dropIndex >= targetCategory.servers.length) {
-                    targetCategory.servers.push(sourceServer);
+                if (isSameCategory) {
+                    // Reordering within the same category - just update itemOrder
+                    const currentIndex = targetCategory.itemOrder.findIndex(item => 
+                        item.type === 'server' && item.id === draggedServerId
+                    );
+                    if (currentIndex !== -1) {
+                        targetCategory.itemOrder.splice(currentIndex, 1);
+                        targetCategory.itemOrder.splice(dropIndex, 0, { type: 'server', id: draggedServerId });
+                        console.log(`Server "${sourceServer.name}" reordered within category "${targetCategory.name}" from position ${currentIndex} to ${dropIndex}`);
+                    }
                 } else {
-                    targetCategory.servers.splice(dropIndex, 0, sourceServer);
+                    // Moving between categories
+                    // Remove from source category
+                    const sourceServerIndex = sourceCategory.servers.findIndex(server => server.id === draggedServerId);
+                    sourceCategory.servers.splice(sourceServerIndex, 1);
+                    
+                    // Remove from source category's itemOrder
+                    if (sourceCategory.itemOrder) {
+                        const sourceOrderIndex = sourceCategory.itemOrder.findIndex(item => 
+                            item.type === 'server' && item.id === draggedServerId
+                        );
+                        if (sourceOrderIndex !== -1) {
+                            sourceCategory.itemOrder.splice(sourceOrderIndex, 1);
+                        }
+                    }
+                    
+                    // Add to target category
+                    targetCategory.servers.push(sourceServer);
+                    
+                    // Add to target category's itemOrder at the correct position
+                    const newOrderItem = { type: 'server', id: draggedServerId };
+                    targetCategory.itemOrder.splice(dropIndex, 0, newOrderItem);
+                    
+                    console.log(`Server "${sourceServer.name}" moved from category "${sourceCategory.name}" to "${targetCategory.name}" at position ${dropIndex}`);
                 }
-                
-                console.log(`Server "${sourceServer.name}" moved from category "${sourceCategory.name}" to "${targetCategory.name}" at position ${dropIndex}`);
             } else if (draggedType === 'title') {
                 console.log(`Dropping title ${draggedTitleId} to category ${targetCategoryId}`);
                 
@@ -4317,18 +4413,41 @@
                     dropIndex = 0;
                 }
                 
-                // Remove from source category
-                const sourceTitleIndex = sourceCategory.titles.findIndex(title => title.id === draggedTitleId);
-                sourceCategory.titles.splice(sourceTitleIndex, 1);
-                
-                // Add to target category at the correct position
-                if (dropIndex >= targetCategory.titles.length) {
-                    targetCategory.titles.push(sourceTitle);
+                if (isSameCategory) {
+                    // Reordering within the same category - just update itemOrder
+                    const currentIndex = targetCategory.itemOrder.findIndex(item => 
+                        item.type === 'title' && item.id === draggedTitleId
+                    );
+                    if (currentIndex !== -1) {
+                        targetCategory.itemOrder.splice(currentIndex, 1);
+                        targetCategory.itemOrder.splice(dropIndex, 0, { type: 'title', id: draggedTitleId });
+                        console.log(`Title "${sourceTitle.text}" reordered within category "${targetCategory.name}" from position ${currentIndex} to ${dropIndex}`);
+                    }
                 } else {
-                    targetCategory.titles.splice(dropIndex, 0, sourceTitle);
+                    // Moving between categories
+                    // Remove from source category
+                    const sourceTitleIndex = sourceCategory.titles.findIndex(title => title.id === draggedTitleId);
+                    sourceCategory.titles.splice(sourceTitleIndex, 1);
+                    
+                    // Remove from source category's itemOrder
+                    if (sourceCategory.itemOrder) {
+                        const sourceOrderIndex = sourceCategory.itemOrder.findIndex(item => 
+                            item.type === 'title' && item.id === draggedTitleId
+                        );
+                        if (sourceOrderIndex !== -1) {
+                            sourceCategory.itemOrder.splice(sourceOrderIndex, 1);
+                        }
+                    }
+                    
+                    // Add to target category
+                    targetCategory.titles.push(sourceTitle);
+                    
+                    // Add to target category's itemOrder at the correct position
+                    const newOrderItem = { type: 'title', id: draggedTitleId };
+                    targetCategory.itemOrder.splice(dropIndex, 0, newOrderItem);
+                    
+                    console.log(`Title "${sourceTitle.text}" moved from category "${sourceCategory.name}" to "${targetCategory.name}" at position ${dropIndex}`);
                 }
-                
-                console.log(`Title "${sourceTitle.text}" moved from category "${sourceCategory.name}" to "${targetCategory.name}" at position ${dropIndex}`);
             }
             
             console.log('Updated categories:', JSON.stringify(categories, null, 2));
