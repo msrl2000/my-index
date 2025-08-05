@@ -2556,6 +2556,7 @@
                         ✏️
                     </button>
                 </p>
+
             </div>
             <div class="header-controls">
                 <div class="search-container">
@@ -2663,6 +2664,11 @@
                     <div class="mobile-menu-item-icon">❓</div>
                     <div class="mobile-menu-item-text" id="mobileHelp">Help</div>
                 </div>
+
+                <div class="mobile-menu-item" onclick="showLocalStorageSwitcher(); closeMobileMenu();">
+                    <div class="mobile-menu-item-icon">🔄</div>
+                    <div class="mobile-menu-item-text" id="mobileLocalStorageSwitcher">${currentLanguage === 'he' ? 'החלפת הגדרות' : 'Switch Configuration'}</div>
+                </div>
             </div>
             
             <div class="mobile-menu-section">
@@ -2730,6 +2736,11 @@
                         <div class="desktop-menu-item" onclick="showHelpModal();">
                             <div class="desktop-menu-item-icon">❓</div>
                             <div class="desktop-menu-item-text" id="desktopHelp">Help</div>
+                        </div>
+
+                        <div class="desktop-menu-item" onclick="showLocalStorageSwitcher();">
+                            <div class="desktop-menu-item-icon">🔄</div>
+                            <div class="desktop-menu-item-text" id="desktopLocalStorageSwitcher">${currentLanguage === 'he' ? 'החלפת הגדרות' : 'Switch Configuration'}</div>
                         </div>
                     </div>
                     
@@ -4478,7 +4489,7 @@
             return currentFilename.replace('.html', '.json');
         }
 
-        // Get localStorage key based on current HTML filename
+        // Get localStorage key based on current HTML filename and local parameter
         function getLocalStorageKey() {
             let currentFilename = window.location.pathname.split('/').pop();
             // Handle root domain serving index.html
@@ -4486,7 +4497,167 @@
                 currentFilename = 'index.html';
             }
             const baseName = currentFilename.replace('.html', '');
+            
+            // Check for local parameter in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const localParam = urlParams.get('local');
+            
+            // If local parameter exists, append it to the key
+            if (localParam) {
+                return `personalServicesIndex_${baseName}_local_${localParam}`;
+            }
+            
             return `personalServicesIndex_${baseName}`;
+        }
+
+        // Get current localStorage identifier for display
+        function getCurrentLocalStorageId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const localParam = urlParams.get('local');
+            return localParam ? `Local ${localParam}` : 'Default';
+        }
+
+        // Switch to a different localStorage configuration
+        function switchLocalStorage(localId) {
+            const currentUrl = new URL(window.location);
+            const urlParams = new URLSearchParams(currentUrl.search);
+            
+            if (localId === 'default') {
+                urlParams.delete('local');
+            } else {
+                urlParams.set('local', localId);
+            }
+            
+            currentUrl.search = urlParams.toString();
+            window.location.href = currentUrl.toString();
+        }
+
+        // Update localStorage indicator display (now in menu)
+        function updateLocalStorageIndicator() {
+            const baseText = currentLanguage === 'he' ? 'החלפת הגדרות' : 'Switch Configuration';
+            
+            // Update desktop menu text
+            const desktopItem = document.getElementById('desktopLocalStorageSwitcher');
+            if (desktopItem) {
+                desktopItem.textContent = `${baseText} (${getCurrentLocalStorageId()})`;
+            }
+            
+            // Update mobile menu text
+            const mobileItem = document.getElementById('mobileLocalStorageSwitcher');
+            if (mobileItem) {
+                mobileItem.textContent = `${baseText} (${getCurrentLocalStorageId()})`;
+            }
+        }
+
+        // Show localStorage switcher modal
+        function showLocalStorageSwitcher() {
+            const currentId = getCurrentLocalStorageId();
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal" onclick="event.stopPropagation()" dir="${currentLanguage === 'he' ? 'rtl' : 'ltr'}" style="max-width: 500px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                        <button class="btn btn-ghost" onclick="hideLocalStorageSwitcher()" title="סגירה">✕</button>
+                        <h3>${currentLanguage === 'he' ? 'החלפת הגדרות' : 'Switch Configuration'}</h3>
+                        <div style="width: 2rem;"></div>
+                    </div>
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <p style="margin-bottom: 1rem; color: var(--text-secondary);">
+                            ${currentLanguage === 'he' ? 'בחר הגדרות אחרות:' : 'Choose different configuration:'}
+                        </p>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <button class="btn btn-secondary" onclick="switchLocalStorage('default')" style="justify-content: flex-start; text-align: ${currentLanguage === 'he' ? 'right' : 'left'};">
+                                <span style="margin-${currentLanguage === 'he' ? 'left' : 'right'}: 0.5rem;">📁</span>
+                                <div>
+                                    <div style="font-weight: 600;">Default Configuration</div>
+                                    <div style="font-size: 0.875rem; color: var(--text-secondary);">${currentLanguage === 'he' ? 'הגדרות ברירת מחדל' : 'Default settings'}</div>
+                                </div>
+                                ${currentId === 'Default' ? `<span style="margin-${currentLanguage === 'he' ? 'right' : 'left'}: auto;">✅</span>` : ''}
+                            </button>
+                            
+                            <button class="btn btn-secondary" onclick="switchLocalStorage('1')" style="justify-content: flex-start; text-align: ${currentLanguage === 'he' ? 'right' : 'left'};">
+                                <span style="margin-${currentLanguage === 'he' ? 'left' : 'right'}: 0.5rem;">📁</span>
+                                <div>
+                                    <div style="font-weight: 600;">Local 1</div>
+                                    <div style="font-size: 0.875rem; color: var(--text-secondary);">${currentLanguage === 'he' ? 'הגדרות מקומיות 1' : 'Local settings 1'}</div>
+                                </div>
+                                ${currentId === 'Local 1' ? `<span style="margin-${currentLanguage === 'he' ? 'right' : 'left'}: auto;">✅</span>` : ''}
+                            </button>
+                            
+                            <button class="btn btn-secondary" onclick="switchLocalStorage('2')" style="justify-content: flex-start; text-align: ${currentLanguage === 'he' ? 'right' : 'left'};">
+                                <span style="margin-${currentLanguage === 'he' ? 'left' : 'right'}: 0.5rem;">📁</span>
+                                <div>
+                                    <div style="font-weight: 600;">Local 2</div>
+                                    <div style="font-size: 0.875rem; color: var(--text-secondary);">${currentLanguage === 'he' ? 'הגדרות מקומיות 2' : 'Local settings 2'}</div>
+                                </div>
+                                ${currentId === 'Local 2' ? `<span style="margin-${currentLanguage === 'he' ? 'right' : 'left'}: auto;">✅</span>` : ''}
+                            </button>
+                            
+                            <button class="btn btn-secondary" onclick="switchLocalStorage('3')" style="justify-content: flex-start; text-align: ${currentLanguage === 'he' ? 'right' : 'left'};">
+                                <span style="margin-${currentLanguage === 'he' ? 'left' : 'right'}: 0.5rem;">📁</span>
+                                <div>
+                                    <div style="font-weight: 600;">Local 3</div>
+                                    <div style="font-size: 0.875rem; color: var(--text-secondary);">${currentLanguage === 'he' ? 'הגדרות מקומיות 3' : 'Local settings 3'}</div>
+                                </div>
+                                ${currentId === 'Local 3' ? `<span style="margin-${currentLanguage === 'he' ? 'right' : 'left'}: auto;">✅</span>` : ''}
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 1rem; padding: 1rem; background: var(--card-bg); border-radius: 0.5rem; border: 1px solid var(--card-border);">
+                        <h4 style="margin: 0 0 0.5rem 0; color: var(--text-primary); font-size: 0.875rem;">
+                            ${currentLanguage === 'he' ? 'איך להשתמש:' : 'How to use:'}
+                        </h4>
+                        <ul style="margin: 0; padding-${currentLanguage === 'he' ? 'right' : 'left'}: 1rem; color: var(--text-secondary); font-size: 0.875rem; line-height: 1.5; text-align: ${currentLanguage === 'he' ? 'right' : 'left'};">
+                            <li>${currentLanguage === 'he' ? 'כל הגדרה שומרת נתונים נפרדים' : 'Each configuration saves separate data'}</li>
+                            <li>${currentLanguage === 'he' ? 'השתמש בכתובות שונות: ?local=1, ?local=2, וכו' : 'Use different URLs: ?local=1, ?local=2, etc.'}</li>
+                            <li>${currentLanguage === 'he' ? 'הגדרה זו נשמרת מקומית בלבד, כדי לשתף אותה, ניתן לגשת לאפשרויות השיתוף מהתפריט או ללחוץ ' : 'This configuration is saved locally only, to share it, go to sharing setup options from the menu or click '} <a href="#" onclick="hideLocalStorageSwitcher(); showShareOptionsModal();" style="color: var(--accent-color); text-decoration: underline;">${currentLanguage === 'he' ? 'כאן' : 'here'}</a></li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Add click outside to close
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    hideLocalStorageSwitcher();
+                }
+            });
+            
+            // Add ESC key listener
+            const escListener = function(e) {
+                if (e.key === 'Escape') {
+                    // Always close the modal when ESC is pressed, regardless of focus
+                    hideLocalStorageSwitcher();
+                }
+            };
+            document.addEventListener('keydown', escListener, true);
+            
+            // Store the listener reference for cleanup
+            modal.escListener = escListener;
+            
+            // Focus the modal content to prevent focus from going to the button
+            const modalContent = modal.querySelector('.modal');
+            if (modalContent) {
+                modalContent.setAttribute('tabindex', '-1');
+                modalContent.focus();
+            }
+        }
+
+        // Hide localStorage switcher modal
+        function hideLocalStorageSwitcher() {
+            const modal = document.querySelector('.modal-overlay');
+            if (modal) {
+                // Remove ESC key listener if it exists
+                if (modal.escListener) {
+                    document.removeEventListener('keydown', modal.escListener);
+                }
+                modal.remove();
+            }
         }
         // Load setup from localStorage first, fallback to JSON file
         async function loadData() {
@@ -9608,6 +9779,9 @@
             // Load saved language
             const savedLang = localStorage.getItem('dashboardLanguage') || 'en';
             setLanguage(savedLang);
+            
+            // Update localStorage indicator
+            updateLocalStorageIndicator();
             
             // Load and apply settings
             loadAndApplySettings();
