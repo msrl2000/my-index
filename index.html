@@ -647,7 +647,6 @@
             border: none;
             outline: none;
         }
-
         .desktop-toggle-switch.active {
             background: #34c759;
         }
@@ -1248,6 +1247,9 @@
             color: var(--text-primary);
             transition: color 0.2s;
             text-align: left;
+            word-break: break-word;
+            white-space: normal;
+            overflow-wrap: break-word;
         }
 
         [dir="rtl"] .title-text {
@@ -1298,7 +1300,6 @@
             min-width: 0;
             overflow: hidden;
         }
-
         .server-name {
             font-size: 0.875rem;
             font-weight: 500;
@@ -1948,7 +1949,6 @@
         .modal[dir="rtl"] .form-group label {
           text-align: right;
         }
-        
         .modal[dir="ltr"] .form-group label {
           text-align: left;
         }
@@ -2565,9 +2565,7 @@
                     </button>
                 </div>
 
-                <button class="header-icon-btn" onclick="document.getElementById('importFile').click()" title="ייבוא הגדרות">
-                    📁
-                </button>
+
                 <button class="header-icon-btn" id="editModeToggle" onclick="toggleEditMode()" title="החלפת מצב עריכה">
                     ✏️
                 </button>
@@ -2598,6 +2596,7 @@
 
         <div class="controls">
             <input type="file" id="importFile" class="file-input" accept=".json" onchange="importConfig(event)">
+            <input type="file" id="importBookmarksFile" class="file-input" accept=".html,.htm" onchange="importBookmarksFromFile(event)" style="display: none;">
         </div>
 
         <!-- Mobile Menu Overlay -->
@@ -2627,7 +2626,7 @@
                     <div class="mobile-menu-item-text" id="mobileToggleEditMode">Toggle Edit Mode</div>
                 </div>
 
-                <div class="mobile-menu-item" onclick="document.getElementById('importFile').click(); closeMobileMenu();">
+                <div class="mobile-menu-item" onclick="showImportConfigModal(); closeMobileMenu();">
                     <div class="mobile-menu-item-icon">📁</div>
                     <div class="mobile-menu-item-text" id="mobileImportConfig">Import Config</div>
                 </div>
@@ -2696,7 +2695,7 @@
                             <div class="desktop-menu-item-icon">✏️</div>
                             <div class="desktop-menu-item-text" id="desktopToggleEditMode">Toggle Edit Mode</div>
                         </div>
-                        <div class="desktop-menu-item" onclick="document.getElementById('importFile').click();">
+                        <div class="desktop-menu-item" onclick="showImportConfigModal();">
                             <div class="desktop-menu-item-icon">📁</div>
                             <div class="desktop-menu-item-text" id="desktopImportConfig">Import Config</div>
                         </div>
@@ -2847,9 +2846,9 @@
                 return '';
             }
             
-            // Length validation with logging
+            // Length validation (silent truncation for imported data)
             if (input.length > maxLength) {
-                console.warn('sanitizeInput: Input too long', input.length, '>', maxLength);
+                // Don't show console warning for imported data - just truncate silently
                 return input.substring(0, maxLength);
             }
             
@@ -3003,10 +3002,11 @@
                         return false;
                     }
                     
-                    if (data.categories.length > 50) {
-                        console.warn('validateImportedData: Too many categories', data.categories.length, '> 50');
-                        return false;
-                    }
+                    // Removed categories limit restriction - allow unlimited categories
+                    // if (data.categories.length > 50) {
+                    //     console.warn('validateImportedData: Too many categories', data.categories.length, '> 50');
+                    //     return false;
+                    // }
                     
                     // Validate each category with detailed logging
                     for (let i = 0; i < data.categories.length; i++) {
@@ -3190,7 +3190,6 @@
                 currentLanguage = 'en';
             }
         }
-
         // Function to reset to language-appropriate defaults
         function resetToLanguageDefaults() {
             // Clear language setting to force re-detection
@@ -3769,7 +3768,6 @@
             
             return html;
         }
-
         // Generate all modals dynamically
         function generateModals() {
             const modalContainer = document.getElementById('modalContainer');
@@ -4412,9 +4410,6 @@
                 container.appendChild(btn);
             });
         }
-
-
-
         // Function to save social media links to localStorage
         function saveSocialMediaLinks() {
             // Always save to main data structure
@@ -4509,15 +4504,17 @@
             
             if (hasResetParam) {
                 // Clear localStorage to force loading from JSON file
-                localStorage.removeItem(getLocalStorageKey());
+                localStorage.clear();
                 // Remove reset parameter from URL without page reload
                 const newUrl = window.location.pathname + window.location.search.replace(/[?&]reset/, '').replace(/^&/, '?');
                 window.history.replaceState({}, '', newUrl);
-                // Reset to language-appropriate defaults
-                resetToLanguageDefaults();
+                console.log('🔄 Reset parameter detected - cleared localStorage');
             }
             
-            // Try to load from localStorage first (unless reset was requested)
+            // Priority loading system: URL params > localStorage > JSON file > defaults
+            let loadedData = false;
+            
+            // 1. Try to load from localStorage first (unless reset was requested)
             const saved = localStorage.getItem(getLocalStorageKey());
             if (saved && !hasResetParam) {
                 try {
@@ -4525,9 +4522,11 @@
                     
                     // Validate the data structure
                     if (validateImportedData(data)) {
-                        categories = data.categories || categories;
-                        headerTitle = data.headerTitle || headerTitle;
-                        headerSubtitle = data.headerSubtitle || headerSubtitle;
+                        // Load main data
+                        if (data.categories) categories = data.categories;
+                        if (data.headerTitle) headerTitle = data.headerTitle;
+                        if (data.headerSubtitle) headerSubtitle = data.headerSubtitle;
+                        if (data.socialMediaLinks) socialMediaLinks = data.socialMediaLinks;
                         
                         // Initialize status indicators for all services (default to offline)
                         categories.forEach(category => {
@@ -4538,40 +4537,63 @@
                             });
                         });
                         
+                        // Load settings (don't save to localStorage automatically)
+                        if (data.settings) {
+                            if (data.settings.googleAnalyticsCode !== undefined) {
+                                window.currentGoogleAnalyticsCode = data.settings.googleAnalyticsCode;
+                                updateGoogleAnalytics(data.settings.googleAnalyticsCode);
+                            }
+                            if (data.settings.serverStatusCheckEnabled !== undefined) {
+                                window.currentServerStatusCheckEnabled = data.settings.serverStatusCheckEnabled;
+                                // Apply setting but don't save to localStorage yet
+                            }
+                            if (data.settings.openLinksInNewTab !== undefined) {
+                                window.currentOpenLinksInNewTab = data.settings.openLinksInNewTab;
+                                // Apply setting but don't save to localStorage yet
+                            }
+                            if (data.settings.mostUsedWebsitesEnabled !== undefined) {
+                                window.currentMostUsedWebsitesEnabled = data.settings.mostUsedWebsitesEnabled;
+                                // Apply setting but don't save to localStorage yet
+                            }
+                            if (data.settings.mostUsedWebsitesMode !== undefined) {
+                                window.currentMostUsedWebsitesMode = data.settings.mostUsedWebsitesMode;
+                                // Apply setting but don't save to localStorage yet
+                            }
+                            if (data.settings.showSocialMediaBar !== undefined) {
+                                window.currentSocialMediaBarVisible = data.settings.showSocialMediaBar === true;
+                                updateSocialMediaBarVisibility(data.settings.showSocialMediaBar === true);
+                            }
+                        }
+
+                        // Check if this is a static page (no editing options)
+                        if (data.isStaticPage === true) {
+                            hideStaticPageElements();
+                        }
+                        
                         // Apply header colors if they exist
                         if (data.headerTitleColor) {
-                            localStorage.setItem('headerTitleColor', data.headerTitleColor);
+                            // Apply but don't save to localStorage yet
                         }
                         if (data.headerSubtitleColor) {
-                            localStorage.setItem('headerSubtitleColor', data.headerSubtitleColor);
+                            // Apply but don't save to localStorage yet
                         }
                         if (data.currentLanguage) {
                             setLanguage(data.currentLanguage);
                         }
                         
-                        // Load social media links if they exist
-                        if (data.socialMediaLinks) {
-                            socialMediaLinks = data.socialMediaLinks;
-                        }
-                        
-                        // Store initial data for comparison (only categories and services)
-                        initialData = {
-                            categories: categories,
-                            headerTitle: headerTitle,
-                            headerSubtitle: headerSubtitle,
-                            socialMediaLinks: socialMediaLinks
-                        };
-                        return;
+                        loadedData = true;
+                        console.log('✅ Loaded data from localStorage');
                     }
                 } catch (error) {
-                    // Silent fail for localStorage errors
+                    console.log('❌ Failed to load from localStorage:', error);
                 }
             }
             
-            // Fallback to JSON file
+            // 2. If localStorage failed, try JSON file
+            if (!loadedData) {
+                console.log('📄 Loading from JSON file as fallback');
             const jsonFilename = getJsonFilename();
             try {
-                // Try to load from JSON file
                 const response = await fetch(jsonFilename);
                 if (response.ok) {
                     let fileData;
@@ -4582,22 +4604,20 @@
                         console.log('📄 JSON data keys:', Object.keys(fileData || {}));
                     } catch (jsonError) {
                         console.log('❌ JSON parsing failed:', jsonError);
-                        const responseText = await response.text();
-                        console.log('📄 Response text:', responseText);
                         throw jsonError;
                     }
                     
-                    // Validate the data structure
-                    // Check if fileData is null, undefined, or empty
                     if (!fileData) {
                         throw new Error('JSON data is null or undefined');
                     }
                     
                     const validationResult = validateImportedData(fileData);
                     if (validationResult) {
-                        categories = fileData.categories || categories;
-                        headerTitle = fileData.headerTitle || headerTitle;
-                        headerSubtitle = fileData.headerSubtitle || headerSubtitle;
+                            // Load main data
+                            if (fileData.categories) categories = fileData.categories;
+                            if (fileData.headerTitle) headerTitle = fileData.headerTitle;
+                            if (fileData.headerSubtitle) headerSubtitle = fileData.headerSubtitle;
+                            if (fileData.socialMediaLinks) socialMediaLinks = fileData.socialMediaLinks;
                         
                         // Initialize status indicators for all services (default to offline)
                         categories.forEach(category => {
@@ -4607,39 +4627,65 @@
                                 }
                             });
                         });
+                            
+                            // Load settings (don't save to localStorage automatically)
+                            if (fileData.settings) {
+                                if (fileData.settings.googleAnalyticsCode !== undefined) {
+                                    window.currentGoogleAnalyticsCode = fileData.settings.googleAnalyticsCode;
+                                    updateGoogleAnalytics(fileData.settings.googleAnalyticsCode);
+                                }
+                                if (fileData.settings.serverStatusCheckEnabled !== undefined) {
+                                    window.currentServerStatusCheckEnabled = fileData.settings.serverStatusCheckEnabled;
+                                    // Apply setting but don't save to localStorage yet
+                                }
+                                if (fileData.settings.openLinksInNewTab !== undefined) {
+                                    window.currentOpenLinksInNewTab = fileData.settings.openLinksInNewTab;
+                                    // Apply setting but don't save to localStorage yet
+                                }
+                                if (fileData.settings.mostUsedWebsitesEnabled !== undefined) {
+                                    window.currentMostUsedWebsitesEnabled = fileData.settings.mostUsedWebsitesEnabled;
+                                    // Apply setting but don't save to localStorage yet
+                                }
+                                if (fileData.settings.mostUsedWebsitesMode !== undefined) {
+                                    window.currentMostUsedWebsitesMode = fileData.settings.mostUsedWebsitesMode;
+                                    // Apply setting but don't save to localStorage yet
+                                }
+                                if (fileData.settings.showSocialMediaBar !== undefined) {
+                                    window.currentSocialMediaBarVisible = fileData.settings.showSocialMediaBar === true;
+                                    updateSocialMediaBarVisibility(fileData.settings.showSocialMediaBar === true);
+                                }
+                            }
+
+                            // Check if this is a static page (no editing options)
+                            if (fileData.isStaticPage === true) {
+                                hideStaticPageElements();
+                            }
                         
                         // Apply header colors if they exist
                         if (fileData.headerTitleColor) {
-                            localStorage.setItem('headerTitleColor', fileData.headerTitleColor);
+                                // Apply but don't save to localStorage yet
                         }
                         if (fileData.headerSubtitleColor) {
-                            localStorage.setItem('headerSubtitleColor', fileData.headerSubtitleColor);
+                                // Apply but don't save to localStorage yet
                         }
                         if (fileData.currentLanguage) {
                             setLanguage(fileData.currentLanguage);
                         }
                         
-                        // Load social media links if they exist
-                        if (fileData.socialMediaLinks) {
-                            socialMediaLinks = fileData.socialMediaLinks;
-                        }
-                        
-                        // Store initial data for comparison (only categories and services)
-                        initialData = {
-                            categories: categories,
-                            headerTitle: headerTitle,
-                            headerSubtitle: headerSubtitle,
-                            socialMediaLinks: socialMediaLinks
-                        };
-                        return;
+                            loadedData = true;
+                            console.log('✅ Loaded data from JSON file');
                     }
                 }
             } catch (error) {
-                // Silent fail for file loading errors
+                    console.log('❌ Failed to load from JSON file:', error);
+                }
             }
             
-            // If both localStorage and file fail, use default data with language detection
+            // 3. If both localStorage and JSON failed, use defaults
+            if (!loadedData) {
+                console.log('📄 Loading from defaults');
             detectLanguageAndSetDefaults();
+            }
             
             // Store initial data for comparison (only categories and services)
             initialData = {
@@ -5270,7 +5316,7 @@
                 openUrl: "🔗 פתיחה",
                 copiedUrl: "הועתק!",
                 // Share functionality
-                shareDashboard: "שיתוף הגדרה",
+                shareDashboard: "שיתוף הגדרות",
                 saveToLocal: "שמירה לאחסון מקומי",
                 saveLocally: "שמירה מקומית",
                 shareOptionsModalTitle: "שיתוף הגדרות",
@@ -5431,7 +5477,7 @@
         }
         // Toggle social media bar from mobile menu
         function toggleMobileSocialMedia() {
-            const currentState = localStorage.getItem('showSocialMediaBar') === 'true';
+            const currentState = getSocialMediaBarVisibility();
             const newState = !currentState;
             
             // Apply the change immediately
@@ -5471,7 +5517,7 @@
 
         // Toggle social media bar from desktop menu
         function toggleDesktopSocialMedia() {
-            const currentState = localStorage.getItem('showSocialMediaBar') === 'true';
+            const currentState = getSocialMediaBarVisibility();
             const newState = !currentState;
             
             // Apply the change immediately
@@ -5524,6 +5570,7 @@
             
             // Check if input is masked (showing asterisks)
             const isMasked = input.getAttribute('data-masked') === 'true';
+            
             if (isMasked) {
                 // If masked, don't validate - just update the display
                 updateGoogleAnalyticsInputFields();
@@ -5540,7 +5587,10 @@
             const ga4Pattern = /^G-[A-Z0-9]{10}$/;  // G-XXXXXXXXXX format
             const uaPattern = /^UA-\d{4,}-\d{1,2}$/; // UA-XXXXXX-X format
             
-            if (ga4Pattern.test(value) || uaPattern.test(value)) {
+            const isValidGA4 = ga4Pattern.test(value);
+            const isValidUA = uaPattern.test(value);
+            
+            if (isValidGA4 || isValidUA) {
                 // Valid format - save it
                 saveGoogleAnalyticsImmediately();
                 
@@ -5589,7 +5639,6 @@
                 }, 2000);
             }
         }
-
         // Unified clear Google Analytics input
         function clearGoogleAnalyticsInputUnified(isMobile = false) {
             const inputId = isMobile ? 'mobileGoogleAnalyticsCode' : 'desktopGoogleAnalyticsCode';
@@ -5796,17 +5845,17 @@
 
         // Validate and save Google Analytics code for mobile
         function validateAndSaveGoogleAnalyticsMobile() {
-            validateAndSaveGoogleAnalytics(true);
+            validateAndSaveGoogleAnalyticsUnified(true);
         }
 
         // Clear Google Analytics input for mobile
         function clearGoogleAnalyticsInputMobile() {
-            clearGoogleAnalyticsInput(true);
+            clearGoogleAnalyticsInputUnified(true);
         }
 
         // Paste Google Analytics code from clipboard for mobile
         async function pasteGoogleAnalyticsCodeMobile() {
-            pasteGoogleAnalyticsCode(true);
+            pasteGoogleAnalyticsCodeUnified(true);
         }
 
         // Update Google Analytics clear button visibility and position
@@ -5814,7 +5863,7 @@
             updateGoogleAnalyticsClearButtonUnified(false);
         }
         // Paste Google Analytics code from clipboard
-        async function pasteGoogleAnalyticsCode() {
+        function pasteGoogleAnalyticsCode() {
             pasteGoogleAnalyticsCodeUnified(false);
         }
         // Clear Google Analytics input
@@ -5970,7 +6019,7 @@
             // Update social media toggle
             const showSocialMediaLabel = document.getElementById(`${prefix}ShowSocialMediaLabel`);
             if (showSocialMediaLabel) {
-                const isVisible = localStorage.getItem('showSocialMediaBar') === 'true';
+                const isVisible = getSocialMediaBarVisibility();
                 showSocialMediaLabel.textContent = isVisible ? 
                     (currentLanguage === 'he' ? 'הסתרת סרגל תחתון' : 'Hide Bottom Bar') :
                     (currentLanguage === 'he' ? 'הצגת סרגל תחתון' : 'Show Bottom Bar');
@@ -5978,7 +6027,7 @@
             
             const socialMediaIcon = document.getElementById(`${prefix}SocialMediaIcon`);
             if (socialMediaIcon) {
-                const isVisible = localStorage.getItem('showSocialMediaBar') === 'true';
+                const isVisible = getSocialMediaBarVisibility();
                 socialMediaIcon.textContent = isVisible ? '⬇️' : '⬆️';
             }
             
@@ -6588,7 +6637,6 @@
             addCategoryCard.appendChild(addCategoryContent);
             grid.appendChild(addCategoryCard);
         }
-
         // Render a single category
         function renderCategory(category, grid, isEditMode) {
             const categoryCard = document.createElement('div');
@@ -7230,7 +7278,6 @@
             window.selectedEditCategoryIcon = icon;
             highlightSelectedIcon('editCategoryIconGrid', icon);
         }
-
         // Highlight selected icon
         function highlightSelectedIcon(gridId, selectedIcon) {
             const grid = document.getElementById(gridId);
@@ -7858,41 +7905,516 @@
         }
         // Export configuration (website click data is intentionally excluded to keep it local only)
         function exportConfig() {
-            const exportData = {
-                categories: categories,
-                headerTitle: headerTitle,
-                headerSubtitle: headerSubtitle,
-                headerTitleColor: localStorage.getItem('headerTitleColor') || '#3b82f6',
-                headerSubtitleColor: localStorage.getItem('headerSubtitleColor') || '#6b7280',
-                currentLanguage: currentLanguage,
-                socialMediaLinks: socialMediaLinks,
-                settings: {
-                    googleAnalyticsCode: localStorage.getItem('googleAnalyticsCode') || '',
-                    showSocialMediaBar: localStorage.getItem('showSocialMediaBar') === 'true',
-                    serverStatusCheckEnabled: localStorage.getItem('serverStatusCheckEnabled') !== 'false',
-                    mostUsedWebsitesEnabled: localStorage.getItem('mostUsedWebsitesEnabled') !== 'false',
-                    mostUsedWebsitesMode: localStorage.getItem('mostUsedWebsitesMode') || 'popular',
-                    openLinksInNewTab: localStorage.getItem('openLinksInNewTab') !== 'false'
+            shareDashboard();
+        }
+        // Import browser favorites/bookmarks
+        function importBrowserFavorites() {
+            // Create a file input for HTML bookmarks file
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.html,.htm';
+            fileInput.style.display = 'none';
+            document.body.appendChild(fileInput);
+            
+            fileInput.onchange = function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const htmlContent = e.target.result;
+                            const importedFavorites = parseBrowserFavorites(htmlContent);
+                            
+                            if (importedFavorites.length > 0) {
+                                // Show confirmation with preview
+                                showFavoritesImportPreview(importedFavorites);
+                            } else {
+                                alert(currentLanguage === 'he' ? 'לא נמצאו מועדפים בקובץ' : 'No favorites found in file');
+                            }
+                        } catch (error) {
+                            console.error('Error parsing favorites:', error);
+                            alert(currentLanguage === 'he' ? 'שגיאה בקריאת קובץ המועדפים' : 'Error reading favorites file');
+                        }
+                    };
+                    reader.readAsText(file);
                 }
-                // Note: websiteClickData is intentionally excluded to keep popular/recent data local only
+                
+                // Clean up
+                document.body.removeChild(fileInput);
             };
             
-
-            
-            const dataStr = JSON.stringify(exportData, null, 2);
-            const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            
-            // Get current filename and replace .html with .json
-            const currentFilename = window.location.pathname.split('/').pop() || 'index.html';
-            const jsonFilename = currentFilename.replace('.html', '.json');
-            link.download = jsonFilename;
-            
-            link.click();
-            URL.revokeObjectURL(url);
+            fileInput.click();
         }
+
+        // Import bookmarks from file input
+        function importBookmarksFromFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const htmlContent = e.target.result;
+                    const importedFavorites = parseBrowserFavorites(htmlContent);
+                    
+                    if (importedFavorites.length > 0) {
+                        // Show preview and import
+                        showFavoritesImportPreview(importedFavorites);
+                    } else {
+                        alert(currentLanguage === 'he' ? 'לא נמצאו מועדפים בקובץ' : 'No favorites found in file');
+                    }
+                } catch (error) {
+                    console.error('Error parsing favorites:', error);
+                    alert(currentLanguage === 'he' ? 'שגיאה בקריאת קובץ המועדפים' : 'Error reading favorites file');
+                }
+            };
+            
+            reader.readAsText(file);
+            
+            // Reset the file input
+            event.target.value = '';
+        }
+
+        // Parse browser favorites HTML
+        function parseBrowserFavorites(htmlContent) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            const favorites = [];
+            
+            // Find the main DL element (bookmarks container)
+            const mainDL = doc.querySelector('DL');
+            if (!mainDL) {
+                console.warn('No DL element found in bookmarks file');
+                return favorites;
+            }
+            
+            // Recursively parse the bookmarks structure
+            parseBookmarksRecursive(mainDL, [], favorites);
+            
+            return favorites;
+        }
+
+        // Recursively parse bookmarks structure
+        function parseBookmarksRecursive(element, currentPath, favorites) {
+            // Process all child nodes
+            for (let child of element.children) {
+                if (child.tagName === 'DT') {
+                    // Check if this DT contains an H3 (folder) or A (bookmark)
+                    const h3 = child.querySelector('H3');
+                    const link = child.querySelector('A');
+                    
+                    if (h3) {
+                        // This is a folder
+                        const folderName = h3.textContent.trim();
+                        if (folderName) {
+                            // Add folder to current path
+                            const newPath = [...currentPath, folderName];
+                            
+                            // Find the DL element that contains the folder contents
+                            const dl = child.querySelector('DL');
+                            if (dl) {
+                                // Recursively parse the folder contents
+                                parseBookmarksRecursive(dl, newPath, favorites);
+                            }
+                        }
+                    } else if (link) {
+                        // This is a bookmark
+                        const href = link.getAttribute('href');
+                        const title = link.textContent.trim();
+                        
+                        if (href && title && (href.startsWith('http') || href.startsWith('https'))) {
+                            favorites.push({
+                                title: title,
+                                url: href,
+                                folderPath: currentPath
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        // Show favorites import preview
+        function showFavoritesImportPreview(favorites) {
+            // Group favorites by folder
+            const groupedFavorites = groupFavoritesByFolder(favorites);
+            
+            // Create preview modal
+            let modal = document.getElementById('favoritesPreviewModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'favoritesPreviewModal';
+                modal.className = 'modal-overlay';
+                modal.innerHTML = `
+                    <div class="modal" onclick="event.stopPropagation()" dir="auto" style="max-width: 800px; max-height: 80vh; overflow-y: auto; overflow-x: hidden;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                            <button class="btn btn-ghost" onclick="hideFavoritesPreviewModal()" title="סגירה">✕</button>
+                            <h3>${currentLanguage === 'he' ? 'תצוגה מקדימה של ייבוא מועדפים' : 'Favorites Import Preview'}</h3>
+                            <div style="width: 2rem;"></div>
+                        </div>
+                        
+                        <!-- Confirm button at the top -->
+                        <div style="margin-bottom: 1rem; display: flex; justify-content: flex-end;">
+                            <button class="btn btn-primary" onclick="confirmFavoritesImport()">${currentLanguage === 'he' ? 'ייבוא' : 'Confirm Import'}</button>
+                        </div>
+                        
+                        <div id="favoritesPreviewContent">
+                            <!-- Content will be populated -->
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                
+                // Add click outside to close
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        hideFavoritesPreviewModal();
+                    }
+                });
+                
+                // Add ESC key listener
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                        hideFavoritesPreviewModal();
+                    }
+                });
+            }
+            
+            // Populate preview content
+            const content = document.getElementById('favoritesPreviewContent');
+            content.innerHTML = generateFavoritesPreviewHTML(groupedFavorites);
+            
+            // Store favorites for import
+            window.favoritesToImport = groupedFavorites;
+            console.log('Stored favorites for import:', window.favoritesToImport);
+            
+            modal.classList.remove('hidden');
+        }
+
+        // Generate HTML for favorites preview
+        function generateFavoritesPreviewHTML(groupedFavorites) {
+            let html = `<p style="margin-bottom: 1rem;">${currentLanguage === 'he' ? 'המועדפים יאורגנו לפי תיקיות:' : 'Favorites will be organized by folders:'}</p>`;
+            
+            // Group by category for display
+            const categoriesMap = {};
+            
+            Object.keys(groupedFavorites).forEach(key => {
+                const group = groupedFavorites[key];
+                const categoryName = group.categoryName;
+                const titleName = group.titleName;
+                
+                if (!categoriesMap[categoryName]) {
+                    categoriesMap[categoryName] = {
+                        titleGroups: {},
+                        directFavorites: []
+                    };
+                }
+                
+                if (titleName) {
+                    if (!categoriesMap[categoryName].titleGroups[titleName]) {
+                        categoriesMap[categoryName].titleGroups[titleName] = [];
+                    }
+                    categoriesMap[categoryName].titleGroups[titleName].push(...group.favorites);
+                } else {
+                    categoriesMap[categoryName].directFavorites.push(...group.favorites);
+                }
+            });
+            
+            Object.keys(categoriesMap).forEach(categoryName => {
+                const category = categoriesMap[categoryName];
+                html += `
+                    <div style="margin-bottom: 1rem; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 0.5rem;">
+                        <h4 style="margin: 0 0 0.5rem 0; color: #3b82f6;">📁 ${categoryName}</h4>
+                `;
+                
+                // Show direct favorites first
+                if (category.directFavorites.length > 0) {
+                    html += `<ul style="margin: 0 0 0.5rem 0; padding-left: 1rem;">`;
+                    category.directFavorites.forEach(favorite => {
+                        html += `<li style="margin-bottom: 0.25rem; word-wrap: break-word; overflow-wrap: break-word;">${favorite.title} - <a href="${favorite.url}" target="_blank" style="color: #6b7280; font-size: 0.875rem; word-break: break-all;">${favorite.url}</a></li>`;
+                    });
+                    html += `</ul>`;
+                }
+                
+                // Show title groups
+                Object.keys(category.titleGroups).forEach(titleName => {
+                    const favorites = category.titleGroups[titleName];
+                    html += `
+                        <div style="margin: 0.5rem 0 0.5rem 1rem; padding: 0.5rem; border-left: 2px solid #e5e7eb;">
+                            <h5 style="margin: 0 0 0.25rem 0; color: #8b5cf6; font-size: 0.875rem;">📄 ${titleName}</h5>
+                            <ul style="margin: 0; padding-left: 1rem;">
+                    `;
+                    
+                    favorites.forEach(favorite => {
+                        html += `<li style="margin-bottom: 0.25rem; word-wrap: break-word; overflow-wrap: break-word;">${favorite.title} - <a href="${favorite.url}" target="_blank" style="color: #6b7280; font-size: 0.875rem; word-break: break-all;">${favorite.url}</a></li>`;
+                    });
+                    
+                    html += `</ul></div>`;
+                });
+                
+                html += `</div>`;
+            });
+            
+            return html;
+        }
+
+        // Group favorites by folder with proper hierarchy
+        function groupFavoritesByFolder(favorites) {
+            const grouped = {};
+            
+            favorites.forEach(favorite => {
+                const path = favorite.folderPath;
+                let categoryName;
+                let titleName = null;
+
+                if (path.length > 0 && path[0] === 'Bookmarks bar') {
+                    if (path.length === 1) {
+                        // Direct favorite in Bookmarks bar
+                        categoryName = 'Bookmarks bar';
+                    } else {
+                        // Subdirectory of Bookmarks bar becomes a category
+                        categoryName = path[1];
+                        if (path.length > 2) {
+                            // Sub-subdirectory becomes a title
+                            titleName = path[2];
+                        }
+                    }
+                } else if (path.length > 0) {
+                    // Not under bookmarks bar, first folder is category
+                    categoryName = path[0];
+                    if (path.length > 1) {
+                        titleName = path[1];
+                    }
+                } else {
+                    // Root favorite, not in any folder.
+                    categoryName = currentLanguage === 'he' ? 'מועדפים' : 'Favorites';
+                }
+
+                const key = titleName ? `${categoryName}|${titleName}` : categoryName;
+
+                if (!grouped[key]) {
+                    grouped[key] = {
+                        categoryName: categoryName,
+                        titleName: titleName,
+                        favorites: []
+                    };
+                }
+                
+                grouped[key].favorites.push(favorite);
+            });
+
+            return grouped;
+        }
+
+        // Confirm and import favorites
+        function confirmFavoritesImport() {
+            try {
+                if (!window.favoritesToImport) {
+                    console.error('No favorites to import - window.favoritesToImport is null or undefined');
+                    alert(currentLanguage === 'he' ? 'אין מועדפים לייבוא' : 'No favorites to import');
+                    return;
+                }
+                
+                console.log('Importing favorites:', window.favoritesToImport);
+                
+                // Convert favorites to categories and servers
+                const newCategories = convertFavoritesToCategories(window.favoritesToImport);
+                console.log('Converted to categories:', newCategories);
+                
+                if (!newCategories || newCategories.length === 0) {
+                    console.error('No categories were created from favorites');
+                    alert(currentLanguage === 'he' ? 'לא נוצרו קטגוריות מהמועדפים' : 'No categories were created from favorites');
+                    return;
+                }
+                
+                // Add new categories to existing ones
+                const originalLength = categories.length;
+                categories = [...categories, ...newCategories];
+                console.log(`Added ${newCategories.length} categories. Total categories: ${categories.length}`);
+                
+                // Save data to localStorage
+                saveData();
+                console.log('Data saved to localStorage');
+                
+                // Hide modal first
+                hideFavoritesPreviewModal();
+                
+                // Force a complete refresh of the display with a small delay
+                setTimeout(() => {
+                    // Ensure data is properly loaded from localStorage
+                    const saved = localStorage.getItem(getLocalStorageKey());
+                    if (saved) {
+                        try {
+                            const data = secureJsonParse(saved);
+                            if (data.categories) {
+                                categories = data.categories;
+                                console.log('Reloaded categories from localStorage:', categories.length);
+                            }
+                        } catch (error) {
+                            console.error('Error reloading from localStorage:', error);
+                        }
+                    }
+                    
+                    // Re-render categories immediately
+                    renderCategories();
+                    console.log('Categories re-rendered');
+                    
+                    // Force a layout recalculation
+                    document.body.offsetHeight;
+                }, 100);
+                
+                // Show success notification
+                const notification = document.getElementById('changesNotification');
+                if (notification && window.favoritesToImport) {
+                    const totalFavorites = Object.values(window.favoritesToImport).flat().length;
+                    const totalCategories = Object.keys(window.favoritesToImport).length;
+                    const message = currentLanguage === 'he' 
+                        ? `יובאו ${totalFavorites} מועדפים ב-${totalCategories} קטגוריות`
+                        : `Imported ${totalFavorites} favorites in ${totalCategories} categories`;
+                    
+                    notification.innerHTML = '<button class="notification-close-btn" onclick="hideChangesNotification()" title="' + t('close') + '">✕</button>' + message;
+                    notification.style.background = 'linear-gradient(135deg, #22c55e, #16a34a)';
+                    notification.style.color = 'white';
+                    notification.style.borderColor = '#22c55e';
+                    notification.classList.add('show');
+                    
+                    setTimeout(() => {
+                        notification.classList.remove('show');
+                    }, 3000);
+                }
+                
+                // Clear stored favorites
+                window.favoritesToImport = null;
+                
+            } catch (error) {
+                console.error('Error during favorites import:', error);
+                alert(currentLanguage === 'he' ? 'שגיאה בייבוא המועדפים' : 'Error importing favorites');
+            }
+        }
+
+        // Convert favorites to categories format with proper hierarchy
+        function convertFavoritesToCategories(groupedFavorites) {
+            const newCategories = [];
+            let baseId = Date.now(); // Start with current timestamp
+            
+            // Group by category name first
+            const categoriesMap = {};
+            
+            Object.keys(groupedFavorites).forEach((key, index) => {
+                const group = groupedFavorites[key];
+                const categoryName = group.categoryName;
+                const titleName = group.titleName;
+                
+                if (!categoriesMap[categoryName]) {
+                    categoriesMap[categoryName] = {
+                        id: (baseId + Object.keys(categoriesMap).length).toString(),
+                        name: categoryName,
+                        borderColor: getRandomColor(),
+                        customIcon: '📚',
+                        servers: [],
+                        titles: [],
+                        itemOrder: []
+                    };
+                }
+                
+                const category = categoriesMap[categoryName];
+                
+                // Add title if exists
+                if (titleName) {
+                    const titleId = `${category.id}-title-${category.titles.length}`;
+                    category.titles.push({
+                        id: titleId,
+                        text: titleName,
+                        textColor: getRandomColor()
+                    });
+                    category.itemOrder.push({
+                        type: 'title',
+                        id: titleId
+                    });
+                }
+                
+                // Add servers
+                group.favorites.forEach(favorite => {
+                    const finalServerId = `${category.id}-${category.servers.length}`;
+                    category.servers.push({
+                        id: finalServerId,
+                        name: favorite.title,
+                        url: favorite.url,
+                        borderColor: getRandomColor(),
+                        status: 'online'
+                    });
+                    category.itemOrder.push({
+                        type: 'server',
+                        id: finalServerId
+                    });
+                });
+            });
+            
+            // Convert map to array
+            Object.values(categoriesMap).forEach(category => {
+                newCategories.push(category);
+            });
+            
+            return newCategories;
+        }
+
+        // Get random color for categories and servers
+        function getRandomColor() {
+            const colors = ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#06b6d4', '#84cc16', '#f97316'];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        // Hide favorites preview modal
+        function hideFavoritesPreviewModal() {
+            const modal = document.getElementById('favoritesPreviewModal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+            // Don't clear favorites here - let confirmFavoritesImport handle it
+        }
+
+        // Hide elements for static page (no editing options)
+        function hideStaticPageElements() {
+            // Hide settings button
+            const settingsButton = document.querySelector('.header-icon-btn[onclick*="toggleDesktopMenu"]');
+            if (settingsButton) {
+                settingsButton.style.display = 'none';
+            }
+
+            // Hide help button
+            const helpButton = document.querySelector('.header-icon-btn[onclick*="showHelpModal"]');
+            if (helpButton) {
+                helpButton.style.display = 'none';
+            }
+
+            // Hide import button
+            const importButton = document.querySelector('.header-icon-btn[onclick*="importFile"]');
+            if (importButton) {
+                importButton.style.display = 'none';
+            }
+
+            // Hide edit mode toggle
+            const editModeToggle = document.getElementById('editModeToggle');
+            if (editModeToggle) {
+                editModeToggle.style.display = 'none';
+            }
+
+            // Hide share button
+            const shareButton = document.getElementById('shareBtn');
+            if (shareButton) {
+                shareButton.style.display = 'none';
+            }
+
+            // Disable edit mode if it's currently active
+            const container = document.querySelector('.container');
+            if (container && container.classList.contains('edit-mode')) {
+                toggleEditMode(); // This will disable edit mode
+            }
+
+            console.log('✅ Static page mode activated - editing options hidden');
+        }
+
+
 
         // Import configuration (website click data is intentionally not imported to keep it local only)
         function importConfig(event) {
@@ -8538,6 +9060,14 @@
 
         // Share functionality (website click data is intentionally excluded to keep it local only)
         function shareDashboard() {
+            // Show share options modal first, then create data based on checkbox
+            showShareOptionsModal();
+        }
+
+        // Create share data with static page option
+        function createShareData() {
+            const isStaticPage = document.getElementById('staticPageCheckbox')?.checked || false;
+            
             // Create data object with all current setup
             const shareData = {
                 categories: categories,
@@ -8551,32 +9081,23 @@
                     googleAnalyticsCode: localStorage.getItem('googleAnalyticsCode') || '',
                     showSocialMediaBar: localStorage.getItem('showSocialMediaBar') === 'true',
                     serverStatusCheckEnabled: localStorage.getItem('serverStatusCheckEnabled') !== 'false',
+                    mostUsedWebsitesEnabled: localStorage.getItem('mostUsedWebsitesEnabled') !== 'false',
+                    mostUsedWebsitesMode: localStorage.getItem('mostUsedWebsitesMode') || 'popular',
                     openLinksInNewTab: localStorage.getItem('openLinksInNewTab') !== 'false'
                 }
                 // Note: websiteClickData is intentionally excluded to keep popular/recent data local only
             };
             
-            // Encode the data using LZString compression for better handling of special characters
-            const jsonString = JSON.stringify(shareData);
-            const encodedData = LZString.compressToEncodedURIComponent(jsonString);
+            // Add static page attribute if checkbox is checked
+            if (isStaticPage) {
+                shareData.isStaticPage = true;
+            }
             
-            // Debug: Log encoding info
-            console.log('🔧 Encoding data:', {
-                originalLength: jsonString.length,
-                encodedLength: encodedData.length,
-                compressionRatio: ((1 - encodedData.length / jsonString.length) * 100).toFixed(1) + '%'
-            });
-            
-            // Create the long URL
-            const currentUrl = window.location.origin + window.location.pathname;
-            const shareUrl = `${currentUrl}?parameters=${encodedData}`;
-            
-            // Show share options modal
-            showShareOptionsModal(shareUrl);
+            return shareData;
         }
 
         // Show share options modal
-        function showShareOptionsModal(shareUrl) {
+        function showShareOptionsModal() {
             // Create modal if it doesn't exist
             let modal = document.getElementById('shareOptionsModal');
             if (!modal) {
@@ -8591,10 +9112,17 @@
                             <div style="width: 2rem;"></div>
                         </div>
                         <p style="margin-bottom: 1.5rem;">${t('shareOptionsModalText')}</p>
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="staticPageCheckbox" style="margin: 0;">
+                                <span>${currentLanguage === 'he' ? 'ייצוא עבור דף סטטי (ללא אפשרויות עריכה)' : 'Export for static page (no editing options)'}</span>
+                            </label>
+                        </div>
+
                         <div class="modal-actions">
                             <button class="btn btn-primary" data-icon="💾" onclick="saveConfigurationFromShareModal()">${currentLanguage === 'he' ? 'שמירה לקובץ' : 'Save to File'}</button>
-                            <button class="btn btn-secondary" data-icon="📋" onclick="copyShareUrl('${shareUrl}')">${t('copyShareUrl')}</button>
-                            <button class="btn btn-secondary" data-icon="📤" onclick="triggerNativeShare('${shareUrl}')">${currentLanguage === 'he' ? 'שיתוף כתובת  יחודית' : 'Share unique URL'}</button>
+                            <button class="btn btn-secondary" data-icon="📋" onclick="copyShareUrl()">${t('copyShareUrl')}</button>
+                            <button class="btn btn-secondary" data-icon="📤" onclick="triggerNativeShare()">${currentLanguage === 'he' ? 'שיתוף כתובת  יחודית' : 'Share unique URL'}</button>
                         </div>
                     </div>
                 `;
@@ -8618,11 +9146,116 @@
                 modal.classList.add('hidden');
             }
         }
+        // Show import config modal
+        function showImportConfigModal() {
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('importConfigModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'importConfigModal';
+                modal.className = 'modal-overlay';
+                modal.innerHTML = `
+                    <div class="modal" onclick="event.stopPropagation()" dir="auto" style="max-width: 600px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                            <button class="btn btn-ghost" onclick="hideImportConfigModal()" title="סגירה">✕</button>
+                            <h3>${currentLanguage === 'he' ? 'ייבוא הגדרות' : 'Import Configuration'}</h3>
+                            <div style="width: 2rem;"></div>
+                        </div>
+                        
+                        <div style="margin-bottom: 2rem;">
+                            <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
+                                ${currentLanguage === 'he' ? 'בחירת סוג הקובץ לייבוא:' : 'Choose the type of file you want to import:'}
+                            </p>
+                            
+                            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                                <!-- Import Favorites Section -->
+                                <div style="padding: 1.5rem; border: 2px solid var(--btn-secondary-border); border-radius: 0.75rem; background: var(--btn-secondary-bg);">
+                                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                                        <div style="font-size: 2rem;">📚</div>
+                                        <div>
+                                            <h4 style="margin: 0 0 0.5rem 0; color: var(--text-primary);">
+                                                ${currentLanguage === 'he' ? 'ייבוא מועדפים מהדפדפן' : 'Import Browser Favorites'}
+                                            </h4>
+                                            <p style="margin: 0; color: var(--text-secondary); font-size: 0.875rem;">
+                                                ${currentLanguage === 'he' ? 'ייבוא מועדפים מקובץ HTML של הדפדפן' : 'Import favorites from browser HTML file'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="margin-bottom: 1rem; padding: 1rem; background: var(--card-bg); border-radius: 0.5rem; border: 1px solid var(--card-border);">
+                                        <h5 style="margin: 0 0 0.5rem 0; color: var(--text-primary); font-size: 0.875rem;">
+                                            ${currentLanguage === 'he' ? 'איך לייצא מועדפים מהדפדפן:' : 'How to export favorites from browser:'}
+                                        </h5>
+                                        <ol style="margin: 0; padding-left: 1.5rem; color: var(--text-secondary); font-size: 0.875rem; line-height: 1.5;">
+                                            <li>${currentLanguage === 'he' ? 'יש לפתוח את הדפדפן שלך' : 'Open your browser'}</li>
+                                            <li>${currentLanguage === 'he' ? 'לגשת אל- Bookmarks > Bookmark Manager' : 'Go to Bookmarks > Bookmark Manager'}</li>
+                                            <li>${currentLanguage === 'he' ? 'לחיצה על "Export Bookmarks"' : 'Click "Export Bookmarks"'}</li>
+                                            <li>${currentLanguage === 'he' ? 'לשמור את הקובץ כ-HTML' : 'Save the file as HTML'}</li>
+                                            <li>${currentLanguage === 'he' ? 'להעלות את הקובץ כאן' : 'Upload the file here'}</li>
+                                        </ol>
+                                    </div>
+                                    
+                                    <button class="btn btn-primary" onclick="document.getElementById('importBookmarksFile').click(); hideImportConfigModal();" style="width: 100%;">
+                                        ${currentLanguage === 'he' ? '📚 ייבוא מועדפים' : '📚 Import Favorites'}
+                                    </button>
+                                </div>
+                                
+                                <!-- Import JSON Section -->
+                                <div style="padding: 1.5rem; border: 2px solid var(--btn-secondary-border); border-radius: 0.75rem; background: var(--btn-secondary-bg);">
+                                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                                        <div style="font-size: 2rem;">⚙️</div>
+                                        <div>
+                                            <h4 style="margin: 0 0 0.5rem 0; color: var(--text-primary);">
+                                                ${currentLanguage === 'he' ? 'ייבוא הגדרות JSON' : 'Import JSON Configuration'}
+                                            </h4>
+                                            <p style="margin: 0; color: var(--text-secondary); font-size: 0.875rem;">
+                                                ${currentLanguage === 'he' ? 'ייבוא הגדרות מקובץ JSON שמור' : 'Import configuration from saved JSON file'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <button class="btn btn-primary" onclick="document.getElementById('importFile').click(); hideImportConfigModal();" style="width: 100%;">
+                                        ${currentLanguage === 'he' ? '⚙️ ייבוא JSON' : '⚙️ Import JSON'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                
+                // Add click outside to close
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        hideImportConfigModal();
+                    }
+                });
+            }
+            
+            modal.classList.remove('hidden');
+        }
+
+        // Hide import config modal
+        function hideImportConfigModal() {
+            const modal = document.getElementById('importConfigModal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+        }
 
         // Trigger native share
-        function triggerNativeShare(shareUrl) {
+        function triggerNativeShare() {
             if (navigator.share) {
                 showSharingWarning();
+                
+                const shareData = createShareData();
+                const jsonString = JSON.stringify(shareData);
+                const encodedData = LZString.compressToEncodedURIComponent(jsonString);
+                
+                // Create the long URL
+                const currentUrl = window.location.origin + window.location.pathname;
+                const shareUrl = `${currentUrl}?parameters=${encodedData}`;
+                
                 navigator.share({
                     title: headerTitle,
                     text: headerSubtitle,
@@ -8711,16 +9344,38 @@
         // Save configuration from share modal
         function saveConfigurationFromShareModal() {
             showSharingWarning();
-            exportConfig();
-            // Don't close the modal, just download the file
+            
+            const shareData = createShareData();
+            const dataStr = JSON.stringify(shareData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            
+            // Get current filename and replace .html with .json
+            const currentFilename = window.location.pathname.split('/').pop() || 'index.html';
+            const jsonFilename = currentFilename.replace('.html', '.json');
+            link.download = jsonFilename;
+            
+            link.click();
+            URL.revokeObjectURL(url);
         }
 
 
 
         // Copy share URL (legacy function for backward compatibility)
-        function copyShareUrl(url) {
+        function copyShareUrl() {
             showSharingWarning();
-            copyUrlToClipboard(url, null);
+            
+            const shareData = createShareData();
+            const jsonString = JSON.stringify(shareData);
+            const encodedData = LZString.compressToEncodedURIComponent(jsonString);
+            
+            // Create the long URL
+            const currentUrl = window.location.origin + window.location.pathname;
+            const shareUrl = `${currentUrl}?parameters=${encodedData}`;
+            
+            copyUrlToClipboard(shareUrl, null);
             // Show feedback
             const copyBtn = document.querySelector('#shareOptionsModal .btn-secondary[onclick*="copyShareUrl"]');
             if (copyBtn) {
@@ -8850,6 +9505,11 @@
             
             // Update the export button to show "Save to Local"
             updateExportButtonForSharedMode();
+            
+            // Check if this is a static page (no editing options)
+            if (sharedData.isStaticPage === true) {
+                hideStaticPageElements();
+            }
             
             // Store initial data for comparison
             initialData = {
@@ -8998,6 +9658,21 @@
             // Render social media bar
             renderSocialMediaBar();
             
+            // Apply social media bar visibility after rendering
+            let showSocialBar;
+            const savedShowSocialBar = localStorage.getItem('showSocialMediaBar');
+            if (savedShowSocialBar !== null) {
+                // User has explicitly set this preference - use localStorage value
+                showSocialBar = savedShowSocialBar === 'true';
+            } else if (window.currentSocialMediaBarVisible !== undefined) {
+                // No localStorage setting, use JSON value
+                showSocialBar = window.currentSocialMediaBarVisible;
+            } else {
+                // Default value
+                showSocialBar = true;
+            }
+            updateSocialMediaBarVisibility(showSocialBar);
+            
             // Update status indicators based on server status check setting
             updateAllStatusIndicators();
             
@@ -9011,23 +9686,79 @@
         }
 
                     function loadAndApplySettings() {
-                // Load Google Analytics settings
-                const analyticsCode = localStorage.getItem('googleAnalyticsCode') || '';
+            // Load Google Analytics settings - localStorage takes precedence over JSON
+            let analyticsCode;
+            const savedAnalyticsCode = localStorage.getItem('googleAnalyticsCode');
+            if (savedAnalyticsCode !== null) {
+                // User has explicitly set this preference - use localStorage value
+                analyticsCode = savedAnalyticsCode;
+            } else if (window.currentGoogleAnalyticsCode) {
+                // No localStorage setting, use JSON value
+                analyticsCode = window.currentGoogleAnalyticsCode;
+            } else {
+                // Default value
+                analyticsCode = '';
+            }
                 if (analyticsCode) {
                     updateGoogleAnalytics(analyticsCode);
                 }
                 
-                // Load social media bar visibility settings
-                const showSocialBar = localStorage.getItem('showSocialMediaBar') === 'true'; // Default to false
+            // Load social media bar visibility settings - localStorage takes precedence over JSON
+            let showSocialBar;
+            const savedShowSocialBar = localStorage.getItem('showSocialMediaBar');
+            if (savedShowSocialBar !== null) {
+                // User has explicitly set this preference - use localStorage value
+                showSocialBar = savedShowSocialBar === 'true';
+            } else if (window.currentSocialMediaBarVisible !== undefined) {
+                // No localStorage setting, use JSON value
+                showSocialBar = window.currentSocialMediaBarVisible;
+            } else {
+                // Default value
+                showSocialBar = true;
+            }
                 updateSocialMediaBarVisibility(showSocialBar);
                 
-                // Load server status check setting
-                const serverStatusCheckEnabled = localStorage.getItem('serverStatusCheckEnabled') !== 'false'; // Default to true
+            // Load server status check setting - localStorage takes precedence over JSON
+            let serverStatusCheckEnabled;
+            const savedServerStatusCheck = localStorage.getItem('serverStatusCheckEnabled');
+            if (savedServerStatusCheck !== null) {
+                // User has explicitly set this preference - use localStorage value
+                serverStatusCheckEnabled = savedServerStatusCheck === 'true';
+            } else if (window.currentServerStatusCheckEnabled !== undefined) {
+                // No localStorage setting, use JSON value
+                serverStatusCheckEnabled = window.currentServerStatusCheckEnabled;
+            } else {
+                // Default value
+                serverStatusCheckEnabled = true;
+            }
                 updateServerStatusCheckToggle(serverStatusCheckEnabled);
                 
-                // Load most used websites setting
-            const mostUsedWebsitesEnabled = localStorage.getItem('mostUsedWebsitesEnabled') !== 'false'; // Default to true
-            const openLinksInNewTab = localStorage.getItem('openLinksInNewTab') !== 'false'; // Default to true
+            // Load most used websites setting - localStorage takes precedence over JSON
+            let mostUsedWebsitesEnabled;
+            const savedMostUsedWebsites = localStorage.getItem('mostUsedWebsitesEnabled');
+            if (savedMostUsedWebsites !== null) {
+                // User has explicitly set this preference - use localStorage value
+                mostUsedWebsitesEnabled = savedMostUsedWebsites === 'true';
+            } else if (window.currentMostUsedWebsitesEnabled !== undefined) {
+                // No localStorage setting, use JSON value
+                mostUsedWebsitesEnabled = window.currentMostUsedWebsitesEnabled;
+            } else {
+                // Default value
+                mostUsedWebsitesEnabled = true;
+            }
+            
+            let openLinksInNewTab;
+            const savedOpenLinksInNewTab = localStorage.getItem('openLinksInNewTab');
+            if (savedOpenLinksInNewTab !== null) {
+                // User has explicitly set this preference - use localStorage value
+                openLinksInNewTab = savedOpenLinksInNewTab === 'true';
+            } else if (window.currentOpenLinksInNewTab !== undefined) {
+                // No localStorage setting, use JSON value
+                openLinksInNewTab = window.currentOpenLinksInNewTab;
+            } else {
+                // Default value
+                openLinksInNewTab = true;
+            }
             
             // Update menu items with a small delay to ensure they're rendered
             setTimeout(() => {
@@ -9046,8 +9777,12 @@
                 setTimeout(() => {
                     updateGoogleAnalyticsInputFields();
                 }, 100);
+            
+            // Also update input fields after a longer delay to ensure all elements are rendered
+            setTimeout(() => {
+                updateGoogleAnalyticsInputFields();
+            }, 500);
         }
-
         // Server Status Check Functions
         function toggleServerStatusCheck() {
             const currentState = localStorage.getItem('serverStatusCheckEnabled') !== 'false'; // Default to true
@@ -9268,6 +10003,15 @@
                     mobileIcon.classList.add('disabled');
                 }
             }
+        }
+
+        function getSocialMediaBarVisibility() {
+            const socialMediaBar = document.getElementById('socialMediaBar');
+            if (socialMediaBar) {
+                return socialMediaBar.style.display !== 'none';
+            }
+            // Fallback to localStorage if element not found
+            return localStorage.getItem('showSocialMediaBar') === 'true';
         }
 
         function updateSocialMediaIconToggle(visible) {
@@ -9866,11 +10610,20 @@
             
             // Update input fields to show masked values if GA is loaded
             updateGoogleAnalyticsInputFields();
+            
+            // Also update after a short delay to ensure all elements are rendered
+            setTimeout(() => {
+                updateGoogleAnalyticsInputFields();
+            }, 100);
         }
 
         function updateGoogleAnalyticsInputFields() {
             const isGALoaded = isGoogleAnalyticsLoaded();
-            const analyticsCode = localStorage.getItem('googleAnalyticsCode') || '';
+            // Check both localStorage and window variables for analytics code
+            let analyticsCode = localStorage.getItem('googleAnalyticsCode') || '';
+            if (!analyticsCode && window.currentGoogleAnalyticsCode) {
+                analyticsCode = window.currentGoogleAnalyticsCode;
+            }
             
             // Update desktop input
             const desktopInput = document.getElementById('desktopGoogleAnalyticsCode');
@@ -9922,9 +10675,6 @@
                 // Clear all localStorage
                 localStorage.clear();
                 
-                // Reset to language-appropriate defaults
-                resetToLanguageDefaults();
-                
                 // Reset dark mode to default
                 document.body.classList.remove('dark-mode');
                 localStorage.setItem('darkMode', 'false');
@@ -9944,15 +10694,6 @@
                 
                 // Clear website click data
                 localStorage.removeItem('websiteClickData');
-                
-                // Update UI
-                updateDashboard();
-                updateServerList();
-                updateTitleList();
-                updateSocialMediaBar();
-                
-                // Re-render categories to show fresh state
-                renderCategories();
                 
                 // Close both mobile and desktop menus so the user can see the alert
                 closeAllMenus();
