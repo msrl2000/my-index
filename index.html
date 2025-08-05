@@ -2635,6 +2635,10 @@
                     <div class="mobile-menu-item-icon">📤</div>
                     <div class="mobile-menu-item-text" id="mobileShareConfiguration">Share Setup</div>
                 </div>
+                <div class="mobile-menu-item" onclick="showLocalStorageSwitcher(); closeMobileMenu();">
+                    <div class="mobile-menu-item-icon">📊</div>
+                    <div class="mobile-menu-item-text" id="mobileLocalStorageSwitcher">${currentLanguage === 'he' ? 'פאנל' : 'Panel'}</div>
+                </div>
                 <div class="mobile-menu-item" onclick="resetAllSettings(); closeMobileMenu();">
                     <div class="mobile-menu-item-icon">🔄</div>
                     <div class="mobile-menu-item-text" id="mobileResetAll">Reset All</div>
@@ -2663,11 +2667,6 @@
                 <div class="mobile-menu-item" onclick="showHelpModal();">
                     <div class="mobile-menu-item-icon">❓</div>
                     <div class="mobile-menu-item-text" id="mobileHelp">Help</div>
-                </div>
-
-                <div class="mobile-menu-item" onclick="showLocalStorageSwitcher(); closeMobileMenu();">
-                    <div class="mobile-menu-item-icon">🔄</div>
-                    <div class="mobile-menu-item-text" id="mobileLocalStorageSwitcher">${currentLanguage === 'he' ? 'החלפת הגדרות' : 'Switch Configuration'}</div>
                 </div>
             </div>
             
@@ -2709,6 +2708,10 @@
                             <div class="desktop-menu-item-icon">📤</div>
                             <div class="desktop-menu-item-text" id="desktopShareConfiguration">Share Setup</div>
                         </div>
+                        <div class="desktop-menu-item" onclick="showLocalStorageSwitcher();">
+                            <div class="desktop-menu-item-icon">📊</div>
+                            <div class="desktop-menu-item-text" id="desktopLocalStorageSwitcher">${currentLanguage === 'he' ? 'פאנל' : 'Panel'}</div>
+                        </div>
                         <div class="desktop-menu-item" onclick="resetAllSettings();">
                             <div class="desktop-menu-item-icon">🔄</div>
                             <div class="desktop-menu-item-text" id="desktopResetAll">Reset All</div>
@@ -2736,11 +2739,6 @@
                         <div class="desktop-menu-item" onclick="showHelpModal();">
                             <div class="desktop-menu-item-icon">❓</div>
                             <div class="desktop-menu-item-text" id="desktopHelp">Help</div>
-                        </div>
-
-                        <div class="desktop-menu-item" onclick="showLocalStorageSwitcher();">
-                            <div class="desktop-menu-item-icon">🔄</div>
-                            <div class="desktop-menu-item-text" id="desktopLocalStorageSwitcher">${currentLanguage === 'he' ? 'החלפת הגדרות' : 'Switch Configuration'}</div>
                         </div>
                     </div>
                     
@@ -4534,7 +4532,7 @@
 
         // Update localStorage indicator display (now in menu)
         function updateLocalStorageIndicator() {
-            const baseText = currentLanguage === 'he' ? 'החלפת הגדרות' : 'Switch Configuration';
+            const baseText = currentLanguage === 'he' ? 'פאנל' : 'Panel';
             
             // Update desktop menu text
             const desktopItem = document.getElementById('desktopLocalStorageSwitcher');
